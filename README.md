@@ -2,7 +2,7 @@
 ## Database Schema Design
 ![db-schema]
 
-[db-schema]: ./images/Screenshot%202024-12-12%20183553.png
+[db-schema]: ./images/Screenshot%202024-12-12%20185148.png
 
 ## API Documentation
 
