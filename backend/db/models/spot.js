@@ -73,6 +73,15 @@ module.exports = (sequelize, DataTypes) => {
         }
       }
     },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Spot must have a name'
+        },
+      },
+    },
     description: {
       type: DataTypes.TEXT,
       allowNull: false,
