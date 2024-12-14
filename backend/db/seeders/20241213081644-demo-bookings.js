@@ -1,6 +1,5 @@
 'use strict';
 
-
 const { Booking } = require('../models');
 
 let options = {};
@@ -12,7 +11,12 @@ if (process.env.NODE_ENV === 'production') {
 module.exports = {
   async up (queryInterface, Sequelize) {
     await Booking.bulkCreate([
-
+      {
+        userId: 5,
+        spotId: 3,
+        startDate: "2021-11-19",
+        endDate: "2021-11-20",
+      }
     ], { validate: true });
 
   },
