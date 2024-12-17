@@ -54,7 +54,6 @@ module.exports = {
         review.spotId = spotId;
       });
 
-      console.log(reviewData, '-----------');
 
       await Review.bulkCreate(reviewData, { validate: true });
     } catch (error) {
