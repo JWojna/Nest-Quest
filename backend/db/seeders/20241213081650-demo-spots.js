@@ -1,6 +1,9 @@
 'use strict';
 
-const { Spot } = require('../models');
+const { Spot, User } = require('../models');
+
+//^import spots data
+const spots = require('../data/spotData');
 
 let options = {};
 if (process.env.NODE_ENV === 'production') {
@@ -10,23 +13,20 @@ if (process.env.NODE_ENV === 'production') {
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await Spot.bulkCreate([
-      {
-        ownerId: 1,
-        address: "123 Disney Lane",
-        city: "San Francisco",
-        state: "California",
-        country: "United States of America",
-        lat: 37.7645358,
-        lng: -122.4730327,
-        name: "App Academy",
-        description: "Place where web developers are created",
-        price: 123
-      },
-    ], { validate: true });
+    const users = await User.findAll();
+    spots.forEach((spot, index) => {
+      spot.ownerId = users[index].id;
+    });
+
+
+    try {
+      await Spot.bulkCreate(spots, { validate: true });
+    } catch (error) {
+      console.error('error seeding spots', error)
+    }
   },
 
   async down (queryInterface, Sequelize) {
-    return queryInterface.bulkDelete('Spots')
+    await queryInterface.bulkDelete('Spots', null, options)
   }
 };

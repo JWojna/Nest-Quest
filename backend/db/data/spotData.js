@@ -34,7 +34,7 @@ const spots = [
         lng: 116.362522,
         name: "Doc Brown's Mansion",
         description: "Time is relative at this beautifull estate.",
-        price: 400
+        price: 400.00
       },
     {
         ownerId: null, //! tiger kings house

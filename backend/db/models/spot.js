@@ -42,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: {
           msg: 'Street address is required'
         },
-        len: [5, 150]
+        len: [2,150]
       }
     },
     city: {
@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: {
           msg: 'City is required'
         },
-        len: [5, 60]
+        len: [2,60]
       }
     },
     state: {
@@ -62,7 +62,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: {
           msg: 'State is required'
         },
-        len: [5, 60]
+        len: [2,60]
       }
     },
     country: {
@@ -72,7 +72,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: {
           msg: 'Country is required'
         },
-        len: [5, 60]
+        len: [2,60]
       }
     },
     lat: {
@@ -109,7 +109,7 @@ module.exports = (sequelize, DataTypes) => {
           msg: 'Spot must have a name'
         },
         len: {
-          args: [5,49],
+          args: [2,49],
           msg: 'Name must be less than 50 characters'
         }
       },
@@ -122,7 +122,7 @@ module.exports = (sequelize, DataTypes) => {
           msg: 'Description is required'
         },
         len: {
-          args: [10,250],
+          args: [2,250],
           msg: 'Descritpion must be 250 characters or less'
         }
       }
