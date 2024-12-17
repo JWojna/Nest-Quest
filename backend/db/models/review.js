@@ -48,7 +48,7 @@ module.exports = (sequelize, DataTypes) => {
           msg: 'Review text is required'
         },
         len: {
-          args: [10,250],
+          args: [1,250],
           msg: 'Must be 250 or less characters'
         }
       },
