@@ -145,7 +145,7 @@ module.exports = (sequelize, DataTypes) => {
     indexes: [
       {
         unique: true,
-        fields: ['city', 'address', 'state']
+        fields: ['city', 'state', 'address']
       }
     ]
   });
