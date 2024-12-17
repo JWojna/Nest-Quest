@@ -4,7 +4,7 @@ const { User } = require('../models');
 const bcrypt = require("bcryptjs");
 
 //^ import data
-const users = require('../data/userData');
+const usersData = require('../data/userData');
 
 let options = {};
 if (process.env.NODE_ENV === 'production') {
@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'production') {
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await User.bulkCreate(users, { validate: true });
+    await User.bulkCreate(usersData, { validate: true });
   },
 
   async down (queryInterface, Sequelize) {

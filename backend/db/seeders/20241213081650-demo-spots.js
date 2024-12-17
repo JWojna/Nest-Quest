@@ -1,9 +1,10 @@
 'use strict';
 
 const { Spot, User } = require('../models');
-
 //^import spots data
-const spots = require('../data/spotData');
+const spotsData = require('../data/spotData');
+//^import shuffler
+const shuffleArray = require('../data/utils/shuffle')
 
 let options = {};
 if (process.env.NODE_ENV === 'production') {
@@ -14,13 +15,16 @@ if (process.env.NODE_ENV === 'production') {
 module.exports = {
   async up (queryInterface, Sequelize) {
     const users = await User.findAll();
-    spots.forEach((spot, index) => {
+
+    shuffleArray(users);
+
+    spotsData.forEach((spot, index) => {
       spot.ownerId = users[index].id;
     });
 
 
     try {
-      await Spot.bulkCreate(spots, { validate: true });
+      await Spot.bulkCreate(spotsData, { validate: true });
     } catch (error) {
       console.error('error seeding spots', error)
     }
