@@ -37,28 +37,54 @@ module.exports = (sequelize, DataTypes) => {
     },
     address: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Street address is required'
+        },
+        len: [5, 150]
+      }
     },
     city: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'City is required'
+        },
+        len: [5, 60]
+      }
     },
     state: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'State is required'
+        },
+        len: [5, 60]
+      }
     },
     country: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      validate: {
+        notEmpty: {
+          msg: 'Country is required'
+        },
+        len: [5, 60]
+      }
     },
     lat: {
       type: DataTypes.FLOAT,
       allowNull: false,
       validate: {
-        isFloat(value) {
+        isNumeric: true,
+        isFloat: true,
+        isLat(value) {
           if (value < -90 || value > 90) {
             throw new Error('Latitude must be between -90 and 90');
-          }
+          };
         }
       }
     },
@@ -66,10 +92,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       allowNull: false,
       validate: {
+        isNumeric: true,
+        isFloat: true,
         isLng(value) {
           if (value < -180 || value > 180) {
             throw new Error('Longitude must be between -180 and 180');
-          }
+          };
         }
       }
     },
@@ -80,6 +108,10 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: {
           msg: 'Spot must have a name'
         },
+        len: {
+          args: [5,49],
+          msg: 'Name must be less than 50 characters'
+        }
       },
     },
     description: {
@@ -87,7 +119,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notEmpty: {
-          msg: 'Description cannot be empty'
+          msg: 'Description is required'
+        },
+        len: {
+          args: [10,250],
+          msg: 'Descritpion must be 250 characters or less'
         }
       }
     },
@@ -95,16 +131,23 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       allowNull: false,
       validate: {
-        isPositive(value) {
-          if (value <= 0) {
-            throw new Error('Price must be a positive number');
-          }
+        isNumeric: true,
+        min: {
+          args: 1,
+          msg: 'Price per day must be a positive number'
         }
       }
     },
   }, {
     sequelize,
     modelName: 'Spot',
+    //^ index for city + no dupe spot
+    indexes: [
+      {
+        unique: true,
+        fields: ['city', 'address', 'state']
+      }
+    ]
   });
   return Spot;
 };

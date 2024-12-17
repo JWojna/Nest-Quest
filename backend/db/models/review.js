@@ -45,8 +45,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       validate: {
         notEmpty: {
-          msg: 'Review cannot be empty'
+          msg: 'Review text is required'
         },
+        len: {
+          args: [10, 250],
+          msg: 'Must be 250 or less characters'
+        }
       },
     },
     stars: {
@@ -54,19 +58,23 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 1,
       validate: {
-        min: {
-          args: 1,
-          msg: 'Stars must be at least 1'
-        },
-        max: {
-          args: 5,
-          msg: 'Stars cannot be more than 5'
+        isNumeric: true,
+        minMax(value) {
+          if (value < 1 || value > 5) {
+            throw new Error('Stars must be an integer from 1 to 5')
+          };
         }
-      },
+      }
     },
   }, {
     sequelize,
     modelName: 'Review',
+    indexes: [
+      {
+        unique: true,
+        fields: ['userId', 'spotId']
+      }
+    ]
   });
   return Review;
 };

@@ -42,6 +42,12 @@ module.exports = (sequelize, DataTypes) => {
             throw new Error('Start date must be before end date');
           };
         },
+        isFuture(value) {
+          const today = new Date();
+          if (value <= today) {
+            throw new  Error('startDate cannot be in the past')
+          }
+        }
       },
     },
     endDate: {
@@ -50,7 +56,7 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         isAfterStartDate(value) {
           if (value <= this.startDate) {
-            throw new Error('End date must be after start date');
+            throw new Error('endDate cannot be on or before startDate');
           };
         },
       },
