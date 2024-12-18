@@ -24,8 +24,8 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        isUrl: {
-          msg: 'Must be a valid url'
+        notEmpty: {
+          msg: 'Must have image'
         }
       }
     },
