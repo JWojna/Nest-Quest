@@ -20,7 +20,7 @@ const images = [
     },
     {
         url: 'https://www.pexels.com/photo/golden-gate-bridge-208745/',
-        preview: true,
+        preview: false,
         imageableId: null,
         imageableType: 'review'
     },
