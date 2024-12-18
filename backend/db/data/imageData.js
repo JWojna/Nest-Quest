@@ -14,7 +14,7 @@ const images = [
     },
     {
         url: 'https://www.pexels.com/photo/empire-state-building-new-york-466685/',
-        preview: false,
+        preview: true,
         imageableId: null,
         imageableType: 'review'
     },
