@@ -3,6 +3,8 @@
 const { Image, Spot, Review } = require('../models');
 //^import data
 const imageData = require('../data/imageData');
+//^Import shuffler
+const shuffleArray = require('../data/utils/shuffle');
 
 let options = {};
 if (process.env.NODE_ENV === 'production') {
@@ -16,11 +18,14 @@ module.exports = {
       const spots = await Spot.findAll();
       const reviews = await Review.findAll();
 
-      imageData.forEach( image => {
+      shuffleArray(reviews);
+      shuffleArray(spots);
+
+      imageData.forEach( (image, index) => {
         if (image.imageableType === 'spot') {
-          image.imageableId = spots[Math.floor(Math.random() * spots.length)].id;
+          image.imageableId = spots[(index % spots.length)].id;
         } else if (image.imageableType === 'review') {
-          image.imageableId = reviews[Math.floor(Math.random() * reviews.length)].id;
+          image.imageableId = reviews[(index % reviews.length)].id;
         }
       });
 
