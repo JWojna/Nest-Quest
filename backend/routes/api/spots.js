@@ -1,17 +1,35 @@
 //^ backend/routes/api/spots.js
 const express = require('express');
-const { Spot } = require('../../db/models')
+const { Spot, Image, Review } = require('../../db/models');
+const { Op } = require('sequelize');
+
 
 const router = express.Router();
 
 
 //~ GET ALL SPOTS
 router.get('/', async (req, res) => {
-    console.log(req);
-    console.log('GET /api/spots');
     try {
-        const spots = await Spot.findAll();
-        console.log(spots);
+        const previewImage = await Image.findAll({
+            attributes: ['url'],
+            where: {
+                [Op.and]: [{ imageableType: 'spot' }, { preview: true }]
+            },
+        });
+
+        previewUrl = JSON.stringify(previewImage)
+
+        console.log(previewUrl, '==========');
+
+        const spots = await Spot.findAll({
+            include: {
+                attributes: ['url'],
+                model: Image,
+                where: {
+                    [Op.and]: [{ imageableType: 'spot'}, { preview: true }]
+                },
+            }
+        });
 
         return res.json(spots);
 
