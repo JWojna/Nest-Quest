@@ -6,6 +6,19 @@ const { Op, fn, col } = require('sequelize');
 
 const router = express.Router();
 
+const formatDate = (date) => {
+    return new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).format(new Date(date)).replace(/\/|, /g, '-');
+  };
+
+
 
 //~ GET ALL SPOTS
 router.get('/', async (req, res) => {
@@ -46,8 +59,8 @@ router.get('/', async (req, res) => {
             name: spot.name,
             descrpition: spot.descrpition,
             price: spot.price,
-            createdAt: spot.createdAt,
-            updatedAt: spot.updatedAt,
+            createdAt: formatDate(spot.createdAt),
+            updatedAt: formatDate(spot.updatedAt),
             avgRating: avgRateMap[spot.id] || 1,
             previewImage: spot.Images[0]?.url || null
         }));
