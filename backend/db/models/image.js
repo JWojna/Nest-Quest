@@ -15,8 +15,8 @@ module.exports = (sequelize, DataTypes) => {
       return this[mixinMethodName](options);
     }
     static associate(models) {
-      Image.belongsTo(models.Spot, { foreignKey: 'imageableId', constraints: false, as: 'spot'});
-      Image.belongsTo(models.Review, { foreignKey: 'imageableId', constraints: false, as: 'review' });
+      Image.belongsTo(models.Spot, {as: 'spot', foreignKey: 'imageableId', constraints: false});
+      Image.belongsTo(models.Review, {as: 'review', foreignKey: 'imageableId', constraints: false});
     }
   }
   Image.init({
@@ -46,5 +46,23 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'Image',
   });
+
+  Image.addHook('afterFind', findResult => {
+    if (!Array.isArray(findResult)) findResult = [findResult];
+    for (const instance of findResult) {
+      if (instance.imageableType === 'spot' && instance.previewImage !== undefined) {
+        instance.imageable = instance.previewImage;
+      } else if (instance.imageableType === 'review' && instance.reviewImage !== undefined) {
+        instance.imageable = instance.reviewImage;
+      }
+      // To prevent mistakes:
+      delete instance.previewImage;
+      delete instance.dataValues.previewImage;
+      delete instance.reviewImage;
+      delete instance.dataValues.reviewImage;
+    }
+  });
+
+
   return Image;
 };
