@@ -18,8 +18,8 @@ module.exports = {
       const spots = await Spot.findAll();
       const reviews = await Review.findAll();
 
-      shuffleArray(reviews);
-      shuffleArray(spots);
+      await shuffleArray(reviews);
+      await shuffleArray(spots);
 
       imageData.forEach( (image, index) => {
         if (image.imageableType === 'spot') {
