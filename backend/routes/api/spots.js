@@ -1,7 +1,7 @@
 //^ backend/routes/api/spots.js
 const express = require('express');
 const { Spot, Image, Review } = require('../../db/models');
-const { Op, where } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 
 
 const router = express.Router();
@@ -10,14 +10,8 @@ const router = express.Router();
 //~ GET ALL SPOTS
 router.get('/', async (req, res) => {
     try {
-        // const previewImage = await Image.findAll({
-        //     attributes: ['url', 'id'],
-        //     where: {
-        //         [Op.and]: [{ imageableType: 'spot' }, { preview: true }]
-        //     },
-        // });
-        // previewUrl = JSON.stringify(previewImage)
-        // console.log(previewImage.id, '==========');
+
+        //^ get all spots including preview image data
         const spots = await Spot.findAll({
             include: [{
                 model: Image,
@@ -25,7 +19,19 @@ router.get('/', async (req, res) => {
                 where: { preview: true },
                 attributes: ['url'],
                 limit: 1
-            }]
+            }],
+        });
+
+        //^ get all associated review star ratings and avg them
+        const reviewAverages = await Review.findAll({
+            attributes: ['spotId', [fn('AVG', col('stars')), 'avgRating']],
+            group: ['spotId']
+        });
+
+        //^ map avg agg to spotId
+        const avgRateMap = {};
+        reviewAverages.forEach( reviewAverage => {
+            avgRateMap[reviewAverage.spotId] = reviewAverage.dataValues.avgRating;
         });
 
         const responseData = spots.map(spot => ({
@@ -42,6 +48,7 @@ router.get('/', async (req, res) => {
             price: spot.price,
             createdAt: spot.createdAt,
             updatedAt: spot.updatedAt,
+            avgRating: avgRateMap[spot.id] || 1,
             previewImage: spot.Images[0]?.url || null
         }));
 
