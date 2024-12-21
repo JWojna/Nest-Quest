@@ -55,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     stars: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DOUBLE('2', '2'),
       allowNull: false,
       defaultValue: 1,
       validate: {
