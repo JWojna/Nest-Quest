@@ -49,23 +49,19 @@ router.get('/', async (req, res) => {
             avgRateMap[spotId] = avgRating;
         });
 
-        const responseData = spots.map(spot => ({
-            id: spot.id,
-            owner: spot.ownerId,
-            address: spot.address,
-            city: spot.city,
-            state: spot.state,
-            country: spot.country,
-            lat: spot.lat,
-            lng: spot.lng,
-            name: spot.name,
-            descrpition: spot.descrpition,
-            price: spot.price,
-            createdAt: formatDate(spot.createdAt),
-            updatedAt: formatDate(spot.updatedAt),
-            avgRating: avgRateMap[spot.id] || 1,
-            previewImage: spot.Images[0]?.url || null
-        }));
+        const responseData = spots.map(spot => {
+            const spotObj = spot.get();
+
+            delete spotObj.Images;
+
+            return {
+                ...spotObj,
+                createdAt: formatDate(spot.createdAt),
+                updatedAt: formatDate(spot.updatedAt),
+                avgRating: avgRateMap[spot.id] || 1,
+                previewImage: spot.Images[0]?.url || null
+            }
+        });
 
         return res.json({ Spots: responseData });
 
