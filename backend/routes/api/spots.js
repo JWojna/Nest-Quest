@@ -37,14 +37,16 @@ router.get('/', async (req, res) => {
 
         //^ get all associated review star ratings and avg them
         const reviewAverages = await Review.findAll({
-            attributes: ['spotId', [fn('AVG', col('stars')), 'avgRating']],
+            attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
             group: ['spotId']
         });
 
         //^ map avg agg to spotId
         const avgRateMap = {};
         reviewAverages.forEach( reviewAverage => {
-            avgRateMap[reviewAverage.spotId] = reviewAverage.dataValues.avgRating;
+            const { spotId, sumStars, reviewCount } = reviewAverage.dataValues;
+            const avgRating = sumStars / reviewCount;
+            avgRateMap[spotId] = avgRating;
         });
 
         const responseData = spots.map(spot => ({
