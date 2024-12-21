@@ -130,7 +130,55 @@ router.get('/:spotId', async (req, res) => {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
+});
+
+//~ GET REVIEWS BY SPOTID
+router.get('/:spotId/reviews', async (req, res) => {
+
+    const reviews = await Review.findAll({
+        where: {
+            spotId: req.params.spotId
+        },
+        include: [
+            {
+                model: Image,
+                as: 'Images',
+                attributes: ['id', 'url'],
+            },
+            {
+                model: User,
+                as: 'User',
+                attributes: ['id', 'firstName', 'lastName'],
+            },
+        ],
+    });
+
+    const responseData = reviews.map(review => {
+        const reviewObj = review.get();
+
+        return {
+            ...reviewObj,
+            createdAt: formatDate(review.createdAt),
+            updatedAt: formatDate(review.updatedAt),
+            User: reviewObj.User ? {
+                id: reviewObj.User.id,
+                firstName: reviewObj.User.firstName,
+                lastName: reviewObj.User.lastName
+            } : null,
+            ReviewImages: reviewObj.Images.map( image => ({
+                id: image.id,
+                url: image.url,
+            })) || null,
+        }
+    });
+
+
+
+
+    res.json({ Reviews: responseData })
 })
+
+
 
 
 
