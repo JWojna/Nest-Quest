@@ -156,6 +156,13 @@ router.get('/:spotId/reviews', async (req, res) => {
     const responseData = reviews.map(review => {
         const reviewObj = review.get();
 
+        const reviewImages = reviewObj.Images.map( image => ({
+            id: image.id,
+            url: image.url,
+        }));
+
+        delete reviewObj.Images;
+
         return {
             ...reviewObj,
             createdAt: formatDate(review.createdAt),
@@ -165,10 +172,7 @@ router.get('/:spotId/reviews', async (req, res) => {
                 firstName: reviewObj.User.firstName,
                 lastName: reviewObj.User.lastName
             } : null,
-            ReviewImages: reviewObj.Images.map( image => ({
-                id: image.id,
-                url: image.url,
-            })) || null,
+            ReviewImages: reviewImages || null
         }
     });
 
