@@ -2,23 +2,10 @@
 const express = require('express');
 const { Spot, Image, Review, User } = require('../../db/models');
 const { Op, fn, col } = require('sequelize');
+const formatDate = require('../api/utils/date-formatter');
 
 
 const router = express.Router();
-
-const formatDate = (date) => {
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).format(new Date(date)).replace(/\/|, /g, '-');
-  };
-
-
 
 //~ GET ALL SPOTS
 router.get('/', async (req, res) => {
