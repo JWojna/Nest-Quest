@@ -1,9 +1,9 @@
 //^ backend/routes/api/spots.js
 const express = require('express');
-const { Spot, Image, Review, User } = require('../../db/models');
 const { Op, fn, col } = require('sequelize');
+const { Spot, Image, Review, User } = require('../../db/models');
+const { requireAuth } = require('../../utils/auth');
 const formatDate = require('../api/utils/date-formatter');
-
 
 const router = express.Router();
 
@@ -169,7 +169,17 @@ router.get('/:spotId/reviews', async (req, res) => {
     res.json({ Reviews: responseData })
 })
 
+//~ CrEATE A SPOT
+//! requires auth
+router.post('/', requireAuth, async (req, res) => {
 
+    try {
+
+    } catch (error) {
+
+    }
+    res.json('boop')
+})
 
 
 
