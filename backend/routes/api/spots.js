@@ -1,6 +1,6 @@
 //^ backend/routes/api/spots.js
 const express = require('express');
-const { Op, fn, col } = require('sequelize');
+const { Op, fn, col, where } = require('sequelize');
 const { Spot, Image, Review, User } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
 const formatDate = require('../api/utils/date-formatter');
@@ -64,9 +64,18 @@ router.get('/', async (req, res) => {
 router.get('/:spotId', async (req, res) => {
     const spotId = req.params.spotId;
     try {
-        const spot = await Spot.findByPk(spotId);
+        const spot = await Spot.findByPk(spotId, {
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'firstName', 'lastName']
+                },
+            ]
+        });
 
-        const owner = await User.findByPk(spot.ownerId)
+        if (!spot) {
+            return res.status(404).json({ error: `Spot not found` });
+        };
 
         const spotImages = await Image.findAll({
             where: {
@@ -75,38 +84,47 @@ router.get('/:spotId', async (req, res) => {
             }
         })
 
-        const reviews = await Review.findAll({
-            where: { spotId: spotId},
-            attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
-            group: ['spotId']
-        });
+        let sumStars = 1;
+        let reviewCount = 0;
+        try {
+            const reviews = await Review.findAll({
+                where: { spotId: spotId},
+                attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
+                group: ['spotId']
+            });
 
-        let sumStars;
-        let reviewCount;
+            if (reviews.length > 0) {
+                const  { sumStars: totalStars, reviewCount: totalCount } = reviews[0].dataValues;
+                sumStars = totalStars;
+                reviewCount = totalCount;
+            }
 
-        const  { sumStars: totalStars, reviewCount: totalCount } = reviews[0].dataValues;
-        sumStars = totalStars;
-        reviewCount = totalCount;
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+        };
 
-        const { createdAt, updatedAt, ...spotData } = spot.get();
+        const spotData = spot.get();
+        const owner = spot.User;
+
+        delete spotData.User;
 
         const responseData = {
             ...spotData,
             createdAt: formatDate(spot.createdAt),
             updatedAt: formatDate(spot.updatedAt),
             numRatings: reviewCount || 0,
-            avgStarRating: sumStars / reviewCount || 1,
-            spotImages: spotImages.map( image => ({
+            avgStarRating: reviewCount ? (sumStars / reviewCount).toFixed(2) : 1,
+            spotImages: spotImages.length ? spotImages.map( image => ({
                 id: image.id,
                 url: image.url,
                 preview: image.preview
-            })) || null,
+            })) : null,
             Owner: {
                 id: owner.id,
                 firstName: owner.firstName,
                 lastName: owner.lastName
             }
-        }
+        };
 
         return res.json(responseData);
     } catch (error) {
