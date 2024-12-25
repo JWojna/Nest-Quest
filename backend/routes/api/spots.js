@@ -169,16 +169,33 @@ router.get('/:spotId/reviews', async (req, res) => {
     res.json({ Reviews: responseData })
 })
 
-//~ CrEATE A SPOT
-//! requires auth
+//~ CREATE A SPOT
+//! is allowing dupes
 router.post('/', requireAuth, async (req, res) => {
+    const spotData = req.body;
+
+
 
     try {
+        const owner = await User.findByPk(req.user.id);
+
+        const spot = await Spot.create({
+            ownerId: owner.id,
+            ...spotData
+        });
+
+        const spotObj = spot.get();
+
+        spotObj.createdAt = formatDate(spotObj.createdAt);
+        spotObj.updatedAt = formatDate(spotObj.updatedAt);
+
+        res.status(201).json(spotObj);
 
     } catch (error) {
-
+        console.error('Error creating spot:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
-    res.json('boop')
+
 })
 
 
