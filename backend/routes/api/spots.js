@@ -2,7 +2,7 @@
 const express = require('express');
 const { Op, fn, col } = require('sequelize');
 const { Spot, Image, Review, User } = require('../../db/models');
-const { requireAuth } = require('../../utils/auth');
+const { requireAuth, checkOwnership } = require('../../utils/auth');
 const formatDate = require('../api/utils/date-formatter');
 
 const router = express.Router();
@@ -88,15 +88,14 @@ router.get('/:spotId', async (req, res) => {
         sumStars = totalStars;
         reviewCount = totalCount;
 
-
         const { createdAt, updatedAt, ...spotData } = spot.get();
 
         const responseData = {
             ...spotData,
             createdAt: formatDate(spot.createdAt),
             updatedAt: formatDate(spot.updatedAt),
-            numRatings: reviewCount,
-            avgStarRating: sumStars / reviewCount || null,
+            numRatings: reviewCount || 0,
+            avgStarRating: sumStars / reviewCount || 1,
             spotImages: spotImages.map( image => ({
                 id: image.id,
                 url: image.url,
@@ -108,8 +107,6 @@ router.get('/:spotId', async (req, res) => {
                 lastName: owner.lastName
             }
         }
-
-
 
         return res.json(responseData);
     } catch (error) {
@@ -192,6 +189,12 @@ router.post('/', requireAuth, async (req, res) => {
         console.error('Error creating spot:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
+
+})
+
+//~ ADD IMAGE TO SPOT BY SPOTID
+//! requires auth and ownership
+router.put('/:spotId', requireAuth, checkOwnership(Spot) ,async (req, res) => {
 
 })
 

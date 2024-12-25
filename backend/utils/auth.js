@@ -76,5 +76,23 @@ const requireAuth = function (req, _res, next) {
     return next(err);
 }
 
+//~ ownership aka authorization middleware
+const checkOwnership = (model, ownershipField = 'ownerId') => {
+  return async (req, res, next) => {
+    const { id } =  req.params;
+    const resource = await model.findByPk(id);
 
-module.exports = { setTokenCookie, restoreUser, requireAuth };
+    if (!resource) {
+      return res.status(403).json({ error: `${model.name} not found` });
+    };
+
+    if (resource[ownershipField] !== req.user.id) {
+      return res.status(403).json({ error: `Forbidden: You do not own this ${model.name.toLowerCase()}` })
+    };
+
+    next();
+  };
+};
+
+
+module.exports = { setTokenCookie, restoreUser, requireAuth, checkOwnership };
