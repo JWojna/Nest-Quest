@@ -172,11 +172,8 @@ router.get('/:spotId/reviews', async (req, res) => {
 //~ CREATE A SPOT
 //! is allowing dupes
 router.post('/', requireAuth, async (req, res) => {
-    const spotData = req.body;
-
-
-
     try {
+        const spotData = req.body;
         const owner = await User.findByPk(req.user.id);
 
         const spot = await Spot.create({
@@ -197,9 +194,6 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
 })
-
-
-
 
 
 module.exports = router;
