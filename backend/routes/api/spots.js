@@ -178,9 +178,6 @@ router.get('/:spotId/reviews', async (req, res) => {
         }
     });
 
-
-
-
     res.json({ Reviews: responseData })
 })
 
@@ -231,6 +228,24 @@ router.put('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) => {
 
     } catch (error) {
         console.error('Error updating spot:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
+//~DELETE A SPOT
+//! requires auth and ownership
+router.delete('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) => {
+    try {
+        const spot = await Spot.findByPk(req.params.spotId);
+
+        if (!spot) return res.status(404).json({ message: `Spot coudn't be found` })
+
+        spot.destroy();
+
+        res.json({ message: 'Successfully deleted' });
+
+    } catch (error) {
+        console.error('Error deleteing spot:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 })
