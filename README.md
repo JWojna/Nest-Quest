@@ -451,8 +451,8 @@ Create and return a new image for a spot specified by id.
 * Require Authentication: true
 * Require proper authorization: Spot must belong to the current user
 * Request
-  * Method: PUT
-  * Route path: api/spots/:spotId/image
+  * Method: POST
+  * Route path: api/spots/:spotId/images
   * Headers:
     * Content-Type: application/json
   * Body:

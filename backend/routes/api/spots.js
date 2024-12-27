@@ -212,7 +212,36 @@ router.post('/', requireAuth, async (req, res) => {
 
 //~ ADD IMAGE TO SPOT BY SPOTID
 //! requires auth and ownership
-router.put('/:spotId', requireAuth, checkOwnership(Spot) ,async (req, res) => {
+router.post('/:spotId/images', requireAuth, checkOwnership(Spot), async (req, res) => {
+    const spotData = req.body;
+    const spotId = req.params.spotId;
+
+    try {
+        const spot = await Spot.findByPk(spotId);
+
+        if(!spot) return res.status(404).json({ error: 'Spot not found' });
+
+        const newImage = await Image.create({
+            ...spotData,
+            imageableId: spotId,
+            imageableType: 'spot'
+
+        });
+
+        const imageObj = newImage.get()
+
+        delete imageObj.imageableId;
+        delete imageObj.imageableType;
+        delete imageObj.createdAt;
+        delete imageObj.updatedAt;
+
+        return res.status(201).json(imageObj)
+
+
+    } catch (error) {
+        console.error('Error creating image:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
 
 })
 

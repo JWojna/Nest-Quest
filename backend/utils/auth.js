@@ -79,7 +79,7 @@ const requireAuth = function (req, _res, next) {
 //~ ownership aka authorization middleware
 const checkOwnership = (model, ownershipField = 'ownerId') => {
   return async (req, res, next) => {
-    const { id } =  req.params;
+    const id  =  req.params.spotId;
     const resource = await model.findByPk(id);
 
     if (!resource) {
