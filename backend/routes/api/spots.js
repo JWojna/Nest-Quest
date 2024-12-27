@@ -1,24 +1,11 @@
 //^ backend/routes/api/spots.js
 const express = require('express');
+const { Op, fn, col, where } = require('sequelize');
 const { Spot, Image, Review, User } = require('../../db/models');
-const { Op, fn, col } = require('sequelize');
-
+const { requireAuth, checkOwnership } = require('../../utils/auth');
+const formatDate = require('../api/utils/date-formatter');
 
 const router = express.Router();
-
-const formatDate = (date) => {
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).format(new Date(date)).replace(/\/|, /g, '-');
-  };
-
-
 
 //~ GET ALL SPOTS
 router.get('/', async (req, res) => {
@@ -77,9 +64,18 @@ router.get('/', async (req, res) => {
 router.get('/:spotId', async (req, res) => {
     const spotId = req.params.spotId;
     try {
-        const spot = await Spot.findByPk(spotId);
+        const spot = await Spot.findByPk(spotId, {
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'firstName', 'lastName']
+                },
+            ]
+        });
 
-        const owner = await User.findByPk(spot.ownerId)
+        if (!spot) {
+            return res.status(404).json({ error: `Spot not found` });
+        };
 
         const spotImages = await Image.findAll({
             where: {
@@ -88,41 +84,47 @@ router.get('/:spotId', async (req, res) => {
             }
         })
 
-        const reviews = await Review.findAll({
-            where: { spotId: spotId},
-            attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
-            group: ['spotId']
-        });
+        let sumStars = 1;
+        let reviewCount = 0;
+        try {
+            const reviews = await Review.findAll({
+                where: { spotId: spotId},
+                attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
+                group: ['spotId']
+            });
 
-        let sumStars;
-        let reviewCount;
+            if (reviews.length > 0) {
+                const  { sumStars: totalStars, reviewCount: totalCount } = reviews[0].dataValues;
+                sumStars = totalStars;
+                reviewCount = totalCount;
+            }
 
-        const  { sumStars: totalStars, reviewCount: totalCount } = reviews[0].dataValues;
-        sumStars = totalStars;
-        reviewCount = totalCount;
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+        };
 
+        const spotData = spot.get();
+        const owner = spot.User;
 
-        const { createdAt, updatedAt, ...spotData } = spot.get();
+        delete spotData.User;
 
         const responseData = {
             ...spotData,
             createdAt: formatDate(spot.createdAt),
             updatedAt: formatDate(spot.updatedAt),
-            numRatings: reviewCount,
-            avgStarRating: sumStars / reviewCount || null,
-            spotImages: spotImages.map( image => ({
+            numRatings: reviewCount || 0,
+            avgStarRating: reviewCount ? (sumStars / reviewCount).toFixed(2) : 1,
+            spotImages: spotImages.length ? spotImages.map( image => ({
                 id: image.id,
                 url: image.url,
                 preview: image.preview
-            })) || null,
+            })) : null,
             Owner: {
                 id: owner.id,
                 firstName: owner.firstName,
                 lastName: owner.lastName
             }
-        }
-
-
+        };
 
         return res.json(responseData);
     } catch (error) {
@@ -182,10 +184,66 @@ router.get('/:spotId/reviews', async (req, res) => {
     res.json({ Reviews: responseData })
 })
 
+//~ CREATE A SPOT
+//! is allowing dupes
+router.post('/', requireAuth, async (req, res) => {
+    try {
+        const spotData = req.body;
+        const owner = await User.findByPk(req.user.id);
+
+        const spot = await Spot.create({
+            ownerId: owner.id,
+            ...spotData
+        });
+
+        const spotObj = spot.get();
+
+        spotObj.createdAt = formatDate(spotObj.createdAt);
+        spotObj.updatedAt = formatDate(spotObj.updatedAt);
+
+        res.status(201).json(spotObj);
+
+    } catch (error) {
+        console.error('Error creating spot:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+})
+
+//~ ADD IMAGE TO SPOT BY SPOTID
+//! requires auth and ownership
+router.post('/:spotId/images', requireAuth, checkOwnership(Spot), async (req, res) => {
+    const spotData = req.body;
+    const spotId = req.params.spotId;
+
+    try {
+        const spot = await Spot.findByPk(spotId);
+
+        if(!spot) return res.status(404).json({ error: 'Spot not found' });
+
+        const newImage = await Image.create({
+            ...spotData,
+            imageableId: spotId,
+            imageableType: 'spot'
+
+        });
+
+        const imageObj = newImage.get()
+
+        delete imageObj.imageableId;
+        delete imageObj.imageableType;
+        delete imageObj.createdAt;
+        delete imageObj.updatedAt;
+
+        return res.status(201).json(imageObj)
 
 
+    } catch (error) {
+        console.error('Error creating image:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
 
-
+})
 
 
 module.exports = router;
