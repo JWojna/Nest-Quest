@@ -1,10 +1,10 @@
 //^ backend/routes/api/session.js
 const express = require('express')
-const { Op } = require('sequelize');
+const { Op, fn, col, where } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
-const { setTokenCookie, restoreUser } = require('../../utils/auth');
-const { User } = require('../../db/models');
+const { setTokenCookie, restoreUser, requireAuth } = require('../../utils/auth');
+const { User, Spot, Review, Image } = require('../../db/models');
 
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
@@ -90,6 +90,57 @@ router.delete(
     return res.json({ message: 'success' });
 }
 );
+
+//~GET SPOTS OWNED BY CURRENT USER
+router.get('/spots', requireAuth, async (req, res) => {
+  try {
+      const spots = await Spot.findAll({
+        where: {
+          ownerId: req.user.id
+        },
+        include: [{
+          model: Image,
+          as: 'Images',
+          where: { preview: true },
+          attributes: ['url'],
+          limit: 1
+        }],
+      });
+
+      const reviewAverages = await Review.findAll({
+          attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
+          group: ['spotId']
+      });
+
+      const avgRateMap = {};
+      reviewAverages.forEach( reviewAverage => {
+          const { spotId, sumStars, reviewCount } = reviewAverage.dataValues;
+          const avgRating = sumStars / reviewCount;
+          avgRateMap[spotId] = avgRating;
+      });
+
+      const responseData = spots.map(spot => {
+          const spotObj = spot.get();
+
+          delete spotObj.Images;
+
+          return {
+              ...spotObj,
+              createdAt: formatDate(spot.createdAt),
+              updatedAt: formatDate(spot.updatedAt),
+              avgRating: avgRateMap[spot.id] || 1,
+              previewImage: spot.Images[0]?.url || null
+          }
+      });
+
+      res.json({ Spots: responseData });
+  } catch (error) {
+    console.error('Error fetching spot:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  };
+
+
+});
 
 
 
