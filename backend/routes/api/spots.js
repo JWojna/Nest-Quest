@@ -210,6 +210,31 @@ router.post('/', requireAuth, async (req, res) => {
 
 })
 
+//~EDIT A SPOT
+//! requires auth and ownership
+router.put('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) => {
+    try {
+        const spot = await Spot.findByPk(req.params.spotId);
+
+        spot.set({
+            ...req.body
+        });
+
+        spot.save({ validate: true });
+
+        const spotObj = spot.get();
+
+        spotObj.createdAt = formatDate(spotObj.createdAt);
+        spotObj.updatedAt = formatDate(spotObj.updatedAt);
+
+        res.status(200).json(spotObj);
+
+    } catch (error) {
+        console.error('Error updating spot:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
 //~ ADD IMAGE TO SPOT BY SPOTID
 //! requires auth and ownership
 router.post('/:spotId/images', requireAuth, checkOwnership(Spot), async (req, res) => {
