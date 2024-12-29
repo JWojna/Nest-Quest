@@ -252,7 +252,7 @@ router.delete('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) =>
 
 //~ ADD IMAGE TO SPOT BY SPOTID
 //! requires auth and ownership
-router.post('/:spotId/images', requireAuth, checkOwnership(Spot), async (req, res) => {
+router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), async (req, res) => {
     const spotData = req.body;
     const spotId = req.params.spotId;
 
