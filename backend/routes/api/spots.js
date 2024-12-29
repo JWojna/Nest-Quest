@@ -191,7 +191,7 @@ router.post('/', requireAuth, async (req, res) => {
         const spot = await Spot.create({
             ownerId: owner.id,
             ...spotData
-        });
+        }, { validate: true });
 
         const spotObj = spot.get();
 
@@ -285,5 +285,35 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot), async (req, re
 
 })
 
+//~CREATE A REVIEW FOR A SPOT
+//! require auth
+
+router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
+    const spot = await Spot.findByPk(req.params.spotsId);
+    const user = await req.user.id;
+    const review = req.body;
+
+    if(!spot) return res.status(404).json({ error: 'Spot not found' });
+
+    try {
+
+        const newReview = await Review.create({
+            userId: user,
+            spotId: spot.id,
+            ...review,
+        }, { validate: true });
+
+        newRevObj = newReview.get();
+        newRevObj.createdAt = formatDate(newRevObj.createdAt);
+        newRevObj.updatedAt = formatDate(newRevObj.updatedAt);
+
+        res.status(201).json(newRevObj);
+
+
+    } catch (error) {
+        console.error('Error creating review:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
 
 module.exports = router;
