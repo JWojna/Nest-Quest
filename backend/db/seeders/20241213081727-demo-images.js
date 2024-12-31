@@ -21,15 +21,29 @@ module.exports = {
       await shuffleArray(reviews);
       await shuffleArray(spots);
 
-      imageData.forEach( (image, index) => {
+      //^ prevent review images from having a preview true during innitial testing
+      let spotImages = [];
+      let reviewImages = [];
+
+      imageData.forEach( (image) => {
         if (image.imageableType === 'spot') {
-          image.imageableId = spots[(index % spots.length)].id;
+          spotImages.push(image);
         } else if (image.imageableType === 'review') {
-          image.imageableId = reviews[(index % reviews.length)].id;
-        }
+          if (image.preview !== true) {
+            reviewImages.push(image);
+          };
+        };
       });
 
-      await Image.bulkCreate(imageData, { validate: true });
+      spotImages.forEach((image, index) => {
+        image.imageableId = spots[index % spots.length].id;
+      });
+
+      reviewImages.forEach((image, index) => {
+        image.imageableId = reviews[index % reviews.length].id;
+      });
+
+      await Image.bulkCreate([...spotImages, ...reviewImages], { validate: true });
     } catch (error) {
       console.error('Error seeding images',error);
     }
