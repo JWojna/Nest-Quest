@@ -52,5 +52,50 @@ async (req, res) => {
     }
 })
 
+//~ADD IMAGE TO REVIEW
+//! requires auth and review ownership
+router.post('/:reviewId/images', requireAuth, checkOwnership(Review, 'reviewId', 'userId'),
+async (req, res) => {
+    const imageData = req.body;
+    const reviewId  = req.params.reviewId;
+
+    const review = await Review.findByPk(reviewId);
+
+    if (!review) return res.status(404).json({ message: "Review couldn't be found" });
+
+    const imageCount = await Image.count({ where: { imageableId: reviewId, imageableType: 'review' }});
+
+    if (imageCount >= 10) {
+        return res.status(403).json(
+            {
+                message: 'Maximum number of images for this resouce was reached'
+            });
+    };
+
+
+    try {
+        const newImage = await Image.create({
+            ...imageData,
+            imageableId: reviewId,
+            imageableType: 'review',
+        }, { validate: true });
+
+        const imageObj = newImage.get();
+
+        delete imageObj.preview;
+        delete imageObj.imageableId;
+        delete imageObj.imageableType;
+        delete imageObj.createdAt;
+        delete imageObj.updatedAt;
+
+        res.status(201).json(imageObj);
+
+    } catch (error) {
+        console.error('Error creating image:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    };
+
+});
+
 
 module.exports = router;
