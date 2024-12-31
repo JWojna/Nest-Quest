@@ -1,7 +1,7 @@
 //^ backend/routes/api/spots.js
 const express = require('express');
 const { Op, fn, col, where } = require('sequelize');
-const { Spot, Image, Review, User } = require('../../db/models');
+const { Spot, Image, Review, User, Booking } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
 const formatDate = require('../api/utils/date-formatter');
 
@@ -181,6 +181,58 @@ router.get('/:spotId/reviews', async (req, res) => {
     res.json({ Reviews: responseData })
 })
 
+//~GET BOOKINGS BY SPOT
+//! req auth && diff response depending on ownership of spot
+//! in route ownership check
+router.get('/:spotId/bookings', requireAuth, async (req, res) => {
+    try {
+        const spot = await Spot.findByPk(req.params.spotId)
+        if (!spot) return res.status(404).json({ "message": "Spot couldn't be found" });
+
+        const bookings = await Booking.findAll({
+            where: {spotId: req.params.spotId},
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'firstName', 'lastName']
+                }
+            ]
+        })
+        if (!bookings) return res.status(404).json({ message: `Bookings couldn't be found for this spot` });
+
+        //^check ownership
+        if (spot.ownerId === req.user.id) {
+            const ownedSpot = bookings.map( booking => {
+                return {
+                    User: { ...booking.User.dataValues },
+                    id: booking.id,
+                    spotId: booking.spotId,
+                    userId: booking.userId,
+                    startDate: formatDate(booking.startDate).split(' ')[0],
+                    endDate: formatDate(booking.endDate).split(' ')[0],
+                    createdAt: formatDate(spot.createdAt),
+                    updatedAt: formatDate(spot.updatedAt)
+                }
+            })
+            res.json({ 'Bookings': ownedSpot })
+        } else {
+            const unOwnedSpot = bookings.map( booking => {
+                return {
+                    spotId: booking.spotId,
+                    startDate: formatDate(booking.startDate).split(' ')[0],
+                    endDate: formatDate(booking.endDate).split(' ')[0]
+                };
+            });
+
+            res.json({ 'Bookings': unOwnedSpot });
+        };
+
+    } catch (error) {
+        console.error('Error fetching bookings:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
 //~ CREATE A SPOT
 //! is allowing dupes
 router.post('/', requireAuth, async (req, res) => {
@@ -287,7 +339,6 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), asyn
 
 //~CREATE A REVIEW FOR A SPOT
 //! require auth
-
 router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
     const spot = await Spot.findByPk(req.params.spotsId);
     const user = await req.user.id;
