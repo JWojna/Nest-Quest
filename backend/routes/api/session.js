@@ -4,7 +4,8 @@ const { Op, fn, col, where } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
 const { setTokenCookie, restoreUser, requireAuth } = require('../../utils/auth');
-const { User, Spot, Review, Image } = require('../../db/models');
+const { User, Spot, Booking, Review, Image } = require('../../db/models');
+const formatDate = require('../api/utils/date-formatter');
 
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
@@ -218,6 +219,67 @@ router.get('/reviews', requireAuth, async (req, res) => {
   }
 })
 
+//~GET BOOKINGS BY CURR USER
+//! req auth
+router.get('/bookings', requireAuth, async (req, res) => {
+  //^ date extractor
+  const extractDate = (formattedDate) => { return formattedDate.split(' ')[0]; };
+
+  try {
+    const bookings = await Booking.findAll({
+      where: { userId: req.user.id },
+      include: [{
+          model: Spot,
+          attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
+          include: [{
+            model: Image,
+            as: 'Images',
+            attributes: ['url'],
+            limit: 1,
+          }],
+        },
+      ],
+    });
+
+    if (!bookings) {
+      return res.status(404).json({ error: `No bookings found`});
+    };
+
+    const responseData = bookings.map( booking => {
+      const { Spot, Images, startDate, endDate, createdAt, updatedAt, userId,  ...bookingData } = booking.get();
+
+      return {
+        ...bookingData,
+        createdAt: formatDate(createdAt),
+        updatedAt: formatDate(updatedAt),
+        Spot: {
+          id: Spot.id,
+          ownerId: Spot.ownerId,
+          address: Spot.address,
+          city: Spot.city,
+          state: Spot.state,
+          country: Spot.country,
+          lat: Spot.lat,
+          lng: Spot.lng,
+          name: Spot.name,
+          price: Spot.price,
+          previewImage: Spot.Images.length ? Spot.Images[0].url : null
+        },
+        userId: booking.userId,
+        startDate: extractDate(formatDate(startDate)),
+        endDate: extractDate(formatDate(endDate)),
+        createdAt: formatDate(createdAt),
+        updatedAt: formatDate(updatedAt),
+      };
+
+    });
+
+    res.json({'Bookings': responseData })
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
 
 
 module.exports = router;
