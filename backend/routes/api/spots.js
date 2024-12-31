@@ -367,4 +367,34 @@ router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
     }
 })
 
+//~CREATE A BOOKING FOR A SPOT
+//! req auth + spot may not belong to curr user
+router.post('/:spotId/bookings', requireAuth, async (req, res) => {
+    const spot = await Spot.findByPk(req.params.spotId);
+    if (!spot) return res.status(404).json({ 'message': `Spot couldn't be found`});
+
+    if (spot.ownerId === req.user.id) return res.status(403).json({ 'message': `Can't book your own spot`});
+
+    try {
+        const newBooking = await spot.createBooking({
+            spotId: spot.id,
+            userId: req.user.id,
+            ...req.body,
+        }, { validate: true })
+
+        const responseData = newBooking.get();
+        responseData.startDate = formatDate(responseData.startDate).split(' ')[0];
+        responseData.endDate = formatDate(responseData.endDate).split(' ')[0];
+        responseData.createdAt = formatDate(responseData.createdAt);
+        responseData.updatedAt = formatDate(responseData.updatedAt);
+
+        res.json(responseData)
+    } catch (error) {
+        console.error('Error creating booking:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+});
+
+
 module.exports = router;
