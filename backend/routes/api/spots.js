@@ -24,15 +24,31 @@ router.get('/', async (req, res) => {
         } = req.query;
 
         //^ validate query params
-        if (page < 1 || size < 1 || size > 20) {
-            return res.status(404).json({
-                message: 'Validationd error',
+        if (
+            page < 1
+            ||size < 1
+            ||size > 20
+            || !(minLat > -90 && minLat < 90)
+            || !(maxLat > -90 && maxLat < 90)
+            || !(minLng > -180 && minLng < 180)
+            || !(maxLng > -180 && maxLat < 180)
+            ||minPrice < 0
+            ||maxPrice < 0) {
+                return res.status(404).json({
+                message: 'Bad Request',
                 errors: {
                     page: 'Page must be greater than or equal to 1',
                     size: 'Size must be between 1 nad 20',
+                    maxLat: "Maximum latitude is invalid",
+                    minLat: "Minimum latitude is invalid",
+                    minLng: "Maximum longitude is invalid",
+                    maxLng: "Minimum longitude is invalid",
+                    minPrice: "Minimum price must be greater than or equal to 0",
+                    maxPrice: "Maximum price must be greater than or equal to 0"
                 },
             });
-        }
+        };
+
 
         //^ prep filters based on params
         const filters = {
