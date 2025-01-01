@@ -11,8 +11,43 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
 
+        //^extract query params and assign defaults
+        const {
+            page = 1,
+            size = 20,
+            minLat,
+            minLng,
+            maxLng,
+            maxLat,
+            minPrice,
+            maxPrice
+        } = req.query;
+
+        //^ validate query params
+        if (page < 1 || size < 1 || size > 20) {
+            return res.status(404).json({
+                message: 'Validationd error',
+                errors: {
+                    page: 'Page must be greater than or equal to 1',
+                    size: 'Size must be between 1 nad 20',
+                },
+            });
+        }
+
+        //^ prep filters based on params
+        const filters = {
+            ...(minLat && { lat: { [Op.gte]: minLat } }),
+            ...(maxLat && { lat: { [Op.lte]: maxLat } }),
+            ...(minLng && { lng: { [Op.gte]: minLng } }),
+            ...(maxLng && { lng: { [Op.lte]: maxLng } }),
+            ...(minPrice && { price: { [Op.gte]: minPrice } }),
+            ...(maxPrice && { price: { [Op.lte]: maxPrice } }),
+        }
+
+
         //^ get all spots including preview image data
         const spots = await Spot.findAll({
+            where: filters,
             include: [{
                 model: Image,
                 as: 'Images',
@@ -20,6 +55,8 @@ router.get('/', async (req, res) => {
                 attributes: ['url'],
                 limit: 1
             }],
+            limit: size,
+            offeset: (page - 1) * size,
         });
 
         //^ get all associated review star ratings and avg them
@@ -50,7 +87,7 @@ router.get('/', async (req, res) => {
             }
         });
 
-        return res.json({ Spots: responseData });
+        return res.json({ Spots: responseData, page: parseInt(page, 10), size: parseInt(size, 10) });
 
     } catch (error) {
         console.error('Error fetching spots:', error);
