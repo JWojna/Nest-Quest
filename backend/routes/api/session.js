@@ -1,15 +1,15 @@
 //^ backend/routes/api/session.js
 const express = require('express')
-const { Op, fn, col, where } = require('sequelize');
+const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
-const { setTokenCookie, restoreUser, requireAuth } = require('../../utils/auth');
-const { User, Spot, Booking, Review, Image } = require('../../db/models');
-const formatDate = require('../api/utils/date-formatter');
+const { setTokenCookie, restoreUser } = require('../../utils/auth');
+const { User } = require('../../db/models');
+
 
 const { check } = require('express-validator');
 const { handleValidationErrors } = require('../../utils/validation');
-const { format } = require('sequelize/lib/utils');
+
 
 const router = express.Router();
 
@@ -92,194 +92,5 @@ router.delete(
     return res.json({ message: 'success' });
 }
 );
-
-//~GET SPOTS OWNED BY CURRENT USER
-router.get('/spots', requireAuth, async (req, res) => {
-  try {
-      const spots = await Spot.findAll({
-        where: {
-          ownerId: req.user.id
-        },
-        include: [{
-          model: Image,
-          as: 'Images',
-          where: { preview: true },
-          attributes: ['url'],
-          limit: 1
-        }],
-      });
-
-      const reviewAverages = await Review.findAll({
-          attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
-          group: ['spotId']
-      });
-
-      const avgRateMap = {};
-      reviewAverages.forEach( reviewAverage => {
-          const { spotId, sumStars, reviewCount } = reviewAverage.dataValues;
-          const avgRating = sumStars / reviewCount;
-          avgRateMap[spotId] = avgRating;
-      });
-
-      const responseData = spots.map(spot => {
-          const spotObj = spot.get();
-
-          delete spotObj.Images;
-
-          return {
-              ...spotObj,
-              createdAt: formatDate(spot.createdAt),
-              updatedAt: formatDate(spot.updatedAt),
-              avgRating: avgRateMap[spot.id] || 1,
-              previewImage: spot.Images[0]?.url || null
-          }
-      });
-
-      res.json({ Spots: responseData });
-  } catch (error) {
-    console.error('Error fetching spot:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
-  };
-
-
-});
-
-//~GET REVIEWS FOR CURR USER
-//! require auth
-router.get('/reviews', requireAuth, async (req, res) => {
-  try {
-    const reviews = await Review.findAll({
-      where: { userId: req.user.id },
-      include: [
-        {
-          model: User,
-          attributes: ['id', 'firstName', 'lastName'],
-        },
-        {
-          model: Spot,
-          attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
-          include: [{
-            model: Image,
-            as: 'Images',
-            attributes: ['url'],
-            limit: 1,
-          }],
-        },
-        {
-          model: Image,
-          as: 'Images',
-          attributes: ['id', 'url'],
-        },
-      ],
-    });
-
-    if (!reviews) {
-      return res.status(404).json({ error: `No reviews found for spot ${spotId} `});
-    };
-
-    const responseData = reviews.map( review => {
-      const { User, Spot, Images, createdAt, updatedAt, ...reviewData } = review.get();
-      const reviewImages = review.Images ? review.Images.map( image => ({
-        id: image.id,
-        url: image.url
-      })) : [];
-
-      return {
-        ...reviewData,
-        createdAt: formatDate(createdAt),
-        updatedAt: formatDate(updatedAt),
-        User: {
-          id: User.id,
-          firstName: User.firstName,
-          lastName: User.lastName
-        },
-        Spot: {
-          id: Spot.id,
-          ownerId: Spot.ownerId,
-          address: Spot.address,
-          city: Spot.city,
-          state: Spot.state,
-          country: Spot.country,
-          lat: Spot.lat,
-          lng: Spot.lng,
-          name: Spot.name,
-          price: Spot.price,
-          previewImage: Spot.Images.length ? Spot.Images[0].url : null
-        },
-        ReviewImages: reviewImages
-      };
-
-    });
-
-    res.json({ Reviews: responseData });
-
-  } catch (error) {
-    console.error('Error fetching reviews:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
-  }
-})
-
-//~GET BOOKINGS BY CURR USER
-//! req auth
-router.get('/bookings', requireAuth, async (req, res) => {
-  //^ date extractor
-  const extractDate = (formattedDate) => { return formattedDate.split(' ')[0]; };
-
-  try {
-    const bookings = await Booking.findAll({
-      where: { userId: req.user.id },
-      include: [{
-          model: Spot,
-          attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
-          include: [{
-            model: Image,
-            as: 'Images',
-            attributes: ['url'],
-            limit: 1,
-          }],
-        },
-      ],
-    });
-
-    if (!bookings) {
-      return res.status(404).json({ error: `No bookings found`});
-    };
-
-    const responseData = bookings.map( booking => {
-      const { Spot, Images, startDate, endDate, createdAt, updatedAt, userId,  ...bookingData } = booking.get();
-
-      return {
-        ...bookingData,
-        createdAt: formatDate(createdAt),
-        updatedAt: formatDate(updatedAt),
-        Spot: {
-          id: Spot.id,
-          ownerId: Spot.ownerId,
-          address: Spot.address,
-          city: Spot.city,
-          state: Spot.state,
-          country: Spot.country,
-          lat: Spot.lat,
-          lng: Spot.lng,
-          name: Spot.name,
-          price: Spot.price,
-          previewImage: Spot.Images.length ? Spot.Images[0].url : null
-        },
-        userId: booking.userId,
-        startDate: extractDate(formatDate(startDate)),
-        endDate: extractDate(formatDate(endDate)),
-        createdAt: formatDate(createdAt),
-        updatedAt: formatDate(updatedAt),
-      };
-
-    });
-
-    res.json({'Bookings': responseData })
-  } catch (error) {
-    console.error('Error fetching bookings:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
-  }
-})
-
 
 module.exports = router;

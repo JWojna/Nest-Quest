@@ -9,6 +9,68 @@ const router = express.Router();
 //^ get curr date for checks
 const currDate = new Date();
 
+//~GET BOOKINGS BY CURR USER
+//! req auth
+router.get('/current', requireAuth, async (req, res) => {
+    //^ date extractor
+    const extractDate = (formattedDate) => { return formattedDate.split(' ')[0]; };
+
+    try {
+      const bookings = await Booking.findAll({
+        where: { userId: req.user.id },
+        include: [{
+            model: Spot,
+            attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
+            include: [{
+              model: Image,
+              as: 'Images',
+              attributes: ['url'],
+              limit: 1,
+            }],
+          },
+        ],
+      });
+
+      if (!bookings) {
+        return res.status(404).json({ error: `No bookings found`});
+      };
+
+      const responseData = bookings.map( booking => {
+        const { Spot, Images, startDate, endDate, createdAt, updatedAt, userId,  ...bookingData } = booking.get();
+
+        return {
+          ...bookingData,
+          createdAt: formatDate(createdAt),
+          updatedAt: formatDate(updatedAt),
+          Spot: {
+            id: Spot.id,
+            ownerId: Spot.ownerId,
+            address: Spot.address,
+            city: Spot.city,
+            state: Spot.state,
+            country: Spot.country,
+            lat: Spot.lat,
+            lng: Spot.lng,
+            name: Spot.name,
+            price: Spot.price,
+            previewImage: Spot.Images.length ? Spot.Images[0].url : null
+          },
+          userId: booking.userId,
+          startDate: extractDate(formatDate(startDate)),
+          endDate: extractDate(formatDate(endDate)),
+          createdAt: formatDate(createdAt),
+          updatedAt: formatDate(updatedAt),
+        };
+
+      });
+
+      res.json({'Bookings': responseData })
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
 //~EDIT A BOOKING
 //! require auth and ownership
 router.put('/:bookingId', requireAuth, checkOwnership(Booking, 'bookingId', 'userId'),
