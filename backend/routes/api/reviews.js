@@ -7,6 +7,81 @@ const formatDate = require('../api/utils/date-formatter');
 
 const router = express.Router();
 
+//~GET REVIEWS FOR CURR USER
+//! require auth
+router.get('/current', requireAuth, async (req, res) => {
+    try {
+      const reviews = await Review.findAll({
+        where: { userId: req.user.id },
+        include: [
+          {
+            model: User,
+            attributes: ['id', 'firstName', 'lastName'],
+          },
+          {
+            model: Spot,
+            attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
+            include: [{
+              model: Image,
+              as: 'Images',
+              attributes: ['url'],
+              limit: 1,
+            }],
+          },
+          {
+            model: Image,
+            as: 'Images',
+            attributes: ['id', 'url'],
+          },
+        ],
+      });
+
+      if (!reviews) {
+        return res.status(404).json({ error: `No reviews found for spot ${spotId} `});
+      };
+
+      const responseData = reviews.map( review => {
+        const { User, Spot, Images, createdAt, updatedAt, ...reviewData } = review.get();
+        const reviewImages = review.Images ? review.Images.map( image => ({
+          id: image.id,
+          url: image.url
+        })) : [];
+
+        return {
+          ...reviewData,
+          createdAt: formatDate(createdAt),
+          updatedAt: formatDate(updatedAt),
+          User: {
+            id: User.id,
+            firstName: User.firstName,
+            lastName: User.lastName
+          },
+          Spot: {
+            id: Spot.id,
+            ownerId: Spot.ownerId,
+            address: Spot.address,
+            city: Spot.city,
+            state: Spot.state,
+            country: Spot.country,
+            lat: Spot.lat,
+            lng: Spot.lng,
+            name: Spot.name,
+            price: Spot.price,
+            previewImage: Spot.Images.length ? Spot.Images[0].url : null
+          },
+          ReviewImages: reviewImages
+        };
+
+      });
+
+      res.json({ Reviews: responseData });
+
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
+
 //~EDIT A REVIEW
 //! require auth and own
 router.put('/:reviewId', requireAuth, checkOwnership(Review, 'reviewId', 'userId'),

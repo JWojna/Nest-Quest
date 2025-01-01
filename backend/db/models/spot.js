@@ -141,14 +141,7 @@ module.exports = (sequelize, DataTypes) => {
     },
   }, {
     sequelize,
-    modelName: 'Spot',
-    //^ index for city + no dupe spot
-    indexes: [
-      {
-        unique: true,
-        fields: ['city', 'state', 'address']
-      }
-    ]
+    modelName: 'Spot'
   });
   return Spot;
 };

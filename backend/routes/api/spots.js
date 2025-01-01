@@ -24,31 +24,22 @@ router.get('/', async (req, res) => {
         } = req.query;
 
         //^ validate query params
-        if (
-            page < 1
-            ||size < 1
-            ||size > 20
-            || !(minLat > -90 && minLat < 90)
-            || !(maxLat > -90 && maxLat < 90)
-            || !(minLng > -180 && minLng < 180)
-            || !(maxLng > -180 && maxLat < 180)
-            ||minPrice < 0
-            ||maxPrice < 0) {
-                return res.status(404).json({
-                message: 'Bad Request',
-                errors: {
-                    page: 'Page must be greater than or equal to 1',
-                    size: 'Size must be between 1 nad 20',
-                    maxLat: "Maximum latitude is invalid",
-                    minLat: "Minimum latitude is invalid",
-                    minLng: "Maximum longitude is invalid",
-                    maxLng: "Minimum longitude is invalid",
-                    minPrice: "Minimum price must be greater than or equal to 0",
-                    maxPrice: "Maximum price must be greater than or equal to 0"
-                },
+        const errors = {};
+        if (page < 1) errors.page = 'Page must be greater than or equal to 1';
+        if (size < 1 || size > 20) errors.size = 'Size must be between 1 and 20';
+        if (minLat && !(minLat > -90 && minLat < 90)) errors.minLat = 'Minimum latitude is invalid';
+        if (maxLat && !(maxLat > -90 && maxLat < 90)) errors.maxLat = 'Maximum latitude is invalid';
+        if (minLng && !(minLng > -180 && minLng < 180)) errors.minLng = 'Minimum longitude is invalid';
+        if (maxLat && !(maxLat > -180 && maxLat < 180)) errors.maxLng = 'Maximum longitude is invalid';
+        if (minPrice < 0) errors.minPrice = 'Minimum price must be greater than or equal to 0';
+        if (maxPrice < 0) errors.maxPrice = 'Maximum price must be greater than or equal to 0';
+
+        if (Object.keys(errors).length > 0) {
+            return res.status(400).json({
+                message: 'Bad request',
+                errors
             });
         };
-
 
         //^ prep filters based on params
         const filters = {
@@ -109,6 +100,57 @@ router.get('/', async (req, res) => {
         console.error('Error fetching spots:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     };
+
+});
+
+//~GET SPOTS OWNED BY CURRENT USER
+router.get('/current', requireAuth, async (req, res) => {
+  try {
+      const spots = await Spot.findAll({
+        where: {
+          ownerId: req.user.id
+        },
+        include: [{
+          model: Image,
+          as: 'Images',
+          where: { preview: true },
+          attributes: ['url'],
+          limit: 1
+        }],
+      });
+
+      const reviewAverages = await Review.findAll({
+          attributes: ['spotId', [fn('SUM', col('stars')), 'sumStars'], [fn('COUNT', col('stars')), 'reviewCount']],
+          group: ['spotId']
+      });
+
+      const avgRateMap = {};
+      reviewAverages.forEach( reviewAverage => {
+          const { spotId, sumStars, reviewCount } = reviewAverage.dataValues;
+          const avgRating = sumStars / reviewCount;
+          avgRateMap[spotId] = avgRating;
+      });
+
+      const responseData = spots.map(spot => {
+          const spotObj = spot.get();
+
+          delete spotObj.Images;
+
+          return {
+              ...spotObj,
+              createdAt: formatDate(spot.createdAt),
+              updatedAt: formatDate(spot.updatedAt),
+              avgRating: avgRateMap[spot.id] || 1,
+              previewImage: spot.Images[0]?.url || null
+          }
+      });
+
+      res.json({ Spots: responseData });
+  } catch (error) {
+    console.error('Error fetching spot:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  };
+
 
 });
 
@@ -371,7 +413,7 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), asyn
             imageableId: spotId,
             imageableType: 'spot'
 
-        });
+        }, { validate: true });
 
         const imageObj = newImage.get()
 
