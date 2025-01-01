@@ -422,7 +422,7 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), asyn
             imageableId: spotId,
             imageableType: 'spot'
 
-        });
+        }, { validate: true });
 
         const imageObj = newImage.get()
 
