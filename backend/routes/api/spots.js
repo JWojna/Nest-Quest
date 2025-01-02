@@ -329,11 +329,21 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
 })
 
 //~ CREATE A SPOT
-//! is allowing dupes
+//! req auth
 router.post('/', requireAuth, async (req, res) => {
     try {
         const spotData = req.body;
         const owner = await User.findByPk(req.user.id);
+        //^ enforce unique address, state, city combo
+        const dupeCheck = await Spot.findOne({
+            where: {
+                address: spotData.address,
+                city: spotData.city,
+                state: spotData.state
+            }
+        })
+
+        if (dupeCheck) return res.status(400).json({ message: 'Spot already exhists at this adress'});
 
         const spot = await Spot.create({
             ownerId: owner.id,
@@ -400,12 +410,11 @@ router.delete('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) =>
 //~ ADD IMAGE TO SPOT BY SPOTID
 //! requires auth and ownership
 router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), async (req, res) => {
-    const spotData = req.body;
-    const spotId = req.params.spotId;
-
     try {
-        const spot = await Spot.findByPk(spotId);
+        const spotData = req.body;
+        const spotId = req.params.spotId;
 
+        const spot = await Spot.findByPk(spotId);
         if(!spot) return res.status(404).json({ error: 'Spot not found' });
 
         const newImage = await Image.create({
@@ -435,13 +444,22 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), asyn
 //~CREATE A REVIEW FOR A SPOT
 //! require auth
 router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
-    const spot = await Spot.findByPk(req.params.spotsId);
-    const user = await req.user.id;
-    const review = req.body;
-
-    if(!spot) return res.status(404).json({ error: 'Spot not found' });
-
     try {
+        const spot = await Spot.findByPk(req.params.spotsId);
+        const user = await req.user.id;
+        const review = req.body;
+
+        if(!spot) return res.status(404).json({ error: 'Spot not found' });
+
+        //^ enforce unique user reviews
+        const dupeCheck = await Review.findOne({
+            where: {
+                userId: req.user.id,
+                spotId: req.params.spotsId
+            }
+        })
+
+        if (dupeCheck) return res.status(400).json({ message: 'You can only review a spot once'});
 
         const newReview = await Review.create({
             userId: user,
