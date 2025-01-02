@@ -42,12 +42,6 @@ module.exports = (sequelize, DataTypes) => {
             throw new Error('Start date must be before end date');
           };
         },
-        isFuture(value) {
-          const today = new Date();
-          if (value <= today) {
-            throw new  Error('startDate cannot be in the past')
-          }
-        }
       },
     },
     endDate: {
