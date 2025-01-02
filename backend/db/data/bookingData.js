@@ -3,20 +3,20 @@ const bookings = [
     {
     userId: null,
     spotId: null,
-    startDate: "2025-1-14",
-    endDate: "2025-1-20",
+    startDate: "2024-1-14",
+    endDate: "2024-1-20",
     },
     {
     userId: null,
     spotId: null,
-    startDate: "2025-3-12",
-    endDate: "2025-3-22",
+    startDate: "2023-3-12",
+    endDate: "2023-3-22",
     },
     {
     userId: null,
     spotId: null,
-    startDate: "2025-4-16",
-    endDate: "2025-4-20",
+    startDate: "2024-4-16",
+    endDate: "2024-4-20",
     },
     {
     userId: null,
