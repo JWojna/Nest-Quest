@@ -8,6 +8,7 @@ if (process.env.NODE_ENV === 'production') {
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
+    options.tableName = 'Reviews';
     await queryInterface.addIndex('Reviews', ['userId', 'spotId'], {
       name: 'idxUserIdSpotId',
       unique: true
@@ -15,6 +16,7 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    await queryInterface.removeIndex('Reviews', 'idxUserIdSpotId', options);
+    options.tableName = 'Reviews';
+    await queryInterface.removeIndex(options, 'idxUserIdSpotId');
   }
 };

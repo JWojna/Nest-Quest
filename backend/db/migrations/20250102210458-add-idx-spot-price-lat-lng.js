@@ -8,6 +8,7 @@ if (process.env.NODE_ENV === 'production') {
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
+    options.tableName = 'Spots';
     await queryInterface.addIndex('Spots', ['price', 'lat', 'lng'], {
       name: 'idxPriceLatLng',
       unique: false
@@ -15,6 +16,7 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    await queryInterface.removeIndex('Spots', 'idxPriceLatLng', options);
+    options.tableName = 'Spots';
+    await queryInterface.removeIndex(options, 'idxPriceLatLng');
   }
 };
