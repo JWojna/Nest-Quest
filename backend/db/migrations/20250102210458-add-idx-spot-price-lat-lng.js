@@ -11,7 +11,7 @@ module.exports = {
     await queryInterface.addIndex('Spots', ['price', 'lat', 'lng'], {
       name: 'idxPriceLatLng',
       unique: false
-    });
+    }, options);
   },
 
   async down (queryInterface, Sequelize) {

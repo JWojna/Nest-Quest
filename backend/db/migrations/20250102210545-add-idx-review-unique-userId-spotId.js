@@ -11,7 +11,7 @@ module.exports = {
     await queryInterface.addIndex('Reviews', ['userId', 'spotId'], {
       name: 'idxUserIdSpotId',
       unique: true
-    });
+    }, options);
   },
 
   async down (queryInterface, Sequelize) {
