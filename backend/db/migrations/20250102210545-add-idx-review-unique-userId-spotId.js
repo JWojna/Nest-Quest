@@ -17,6 +17,6 @@ module.exports = {
 
   async down (queryInterface, Sequelize) {
     options.tableName = 'Reviews';
-    await queryInterface.removeIndex('Reviews', 'idxUserIdSpotId', options);
+    await queryInterface.removeIndex(options, 'idxUserIdSpotId');
   }
 };
