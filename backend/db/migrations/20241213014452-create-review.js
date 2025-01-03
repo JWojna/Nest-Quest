@@ -53,8 +53,17 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     }, options);
+
+    //? add indx
+    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Spots', ['price', 'lat', 'lng'], {
+      name: 'idxPriceLatLng',
+      unique: false
+    }, options);
+
   },
   async down(queryInterface, Sequelize) {
+    //? drop pre idx
+    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Spots', 'idxPriceLatLng');
     await queryInterface.dropTable('Reviews', options);
   }
 };

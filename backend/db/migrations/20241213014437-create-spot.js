@@ -71,8 +71,17 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     }, options);
+
+    //? add index here
+    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Reviews', ['userId', 'spotId'], {
+      name: 'idxUserIdSpotId',
+      unique: true
+    }, options);
+
   },
   async down(queryInterface, Sequelize) {
+    //? rmv index pre table drop
+    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Reviews', 'idxUserIdSpotId');
     await queryInterface.dropTable('Spots', options);
   }
 };
