@@ -55,15 +55,15 @@ module.exports = {
     }, options);
 
     //? add indx
-    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Spots', ['price', 'lat', 'lng'], {
+    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Reviews', ['price', 'lat', 'lng'], {
       name: 'idxPriceLatLng',
       unique: false
     }, options);
 
   },
   async down(queryInterface, Sequelize) {
-    //? drop pre idx
-    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Spots', 'idxPriceLatLng');
+    //? rmv idx
+    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Review', 'idxPriceLatLng');
     await queryInterface.dropTable('Reviews', options);
   }
 };
