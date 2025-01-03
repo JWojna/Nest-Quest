@@ -5,7 +5,117 @@ const { Spot, Image, Review, User, Booking } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
 const formatDate = require('../api/utils/date-formatter');
 
+const { check } = require('express-validator');
+const { handleValidationErrors } = require('../../utils/validation');
+
 const router = express.Router();
+
+const validateSpot = [
+    check('address')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .withMessage('Street address is required'),
+    check('city')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .withMessage('City is required'),
+    check('state')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .withMessage('State is required'),
+    check('country')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .withMessage('Country is required'),
+    check('lat')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isNumeric()
+      .withMessage('Latitude must be numeric')
+      .custom((value, { req }) => {
+        const num = Number(value);
+        if (num < -90 || num > 90) {
+            throw new Error('Latitude must be within -90 and 90')
+        }
+        return true;
+      }),
+    check('lng')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isNumeric()
+      .withMessage('Latitude must be numeric')
+      .custom((value, { req }) => {
+        const num = Number(value);
+        if (num < -180 || num > 180) {
+            throw new Error('Latitude must be within -180 and 180')
+        }
+        return true;
+      }),
+    check('name')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isLength({ max: 50 })
+      .withMessage('Name must be less than 50 characters'),
+    check('description')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isLength({ min: 2, max: 250 })
+      .withMessage('Description is required'),
+    check('price')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isNumeric()
+      .withMessage('Price must be a number')
+      .custom((value, { req }) => {
+        const num = Number(value);
+        if (num < 0) {
+            throw new Error('Price per day must be a positive number')
+        }
+        return true;
+      }),
+    handleValidationErrors
+];
+
+const validateReview = [
+    check('review')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .withMessage('Review text is required')
+      .custom((value, { req }) => {
+        if (value.length > 250) {
+            throw new Error('Review must not exceed 250 charecters')
+        }
+        return true;
+      }),
+    check('stars')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isNumeric()
+      .withMessage('Stars must be a number')
+      .custom((value, { req }) => {
+        const num = Number(value);
+        if (num < 1 || num > 5) {
+            throw new Error('Stars must be an integer from 1 to 5')
+        }
+        return true;
+      }),
+    handleValidationErrors
+  ];
+
+  const validateBooking = [
+    check('startDate')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isDate()
+      .withMessage('startDate cannot be in the past'), //? custom validators?
+    check('endDate')
+      .exists({ checkFalsy: true })
+      .notEmpty()
+      .isDate()
+      .withMessage('endDate cannot be on or before startDate'), //? custom validators?
+    handleValidationErrors
+  ];
+
 
 //~ GET ALL SPOTS
 router.get('/', async (req, res) => {
@@ -169,7 +279,7 @@ router.get('/:spotId', async (req, res) => {
         });
 
         if (!spot) {
-            return res.status(404).json({ error: `Spot not found` });
+            return res.status(404).json({ message: `Spot couldn't be found` });
         };
 
         const spotImages = await Image.findAll({
@@ -282,7 +392,7 @@ router.get('/:spotId/reviews', async (req, res) => {
 router.get('/:spotId/bookings', requireAuth, async (req, res) => {
     try {
         const spot = await Spot.findByPk(req.params.spotId)
-        if (!spot) return res.status(404).json({ "message": "Spot couldn't be found" });
+        if (!spot) return res.status(404).json({ message: "Spot couldn't be found" });
 
         const bookings = await Booking.findAll({
             where: {spotId: req.params.spotId},
@@ -330,7 +440,7 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
 
 //~ CREATE A SPOT
 //! req auth
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validateSpot, async (req, res) => {
     try {
         const spotData = req.body;
         const owner = await User.findByPk(req.user.id);
@@ -366,7 +476,7 @@ router.post('/', requireAuth, async (req, res) => {
 
 //~EDIT A SPOT
 //! requires auth and ownership
-router.put('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) => {
+router.put('/:spotId', requireAuth, checkOwnership(Spot), validateSpot, async (req, res) => {
     try {
         const spot = await Spot.findByPk(req.params.spotId);
 
@@ -415,7 +525,7 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), asyn
         const spotId = req.params.spotId;
 
         const spot = await Spot.findByPk(spotId);
-        if(!spot) return res.status(404).json({ error: 'Spot not found' });
+        if(!spot) return res.status(404).json({ message: `Spot couldn't be found` });
 
         const newImage = await Image.create({
             ...spotData,
@@ -443,13 +553,13 @@ router.post('/:spotId/images', requireAuth, checkOwnership(Spot, 'spotId'), asyn
 
 //~CREATE A REVIEW FOR A SPOT
 //! require auth
-router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
+router.post('/:spotsId/reviews', requireAuth, validateReview, async (req, res) => {
     try {
         const spot = await Spot.findByPk(req.params.spotsId);
         const user = await req.user.id;
         const review = req.body;
 
-        if(!spot) return res.status(404).json({ error: 'Spot not found' });
+        if(!spot) return res.status(404).json({ message: `Spot couldn't be found` });
 
         //^ enforce unique user reviews
         const dupeCheck = await Review.findOne({
@@ -459,7 +569,7 @@ router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
             }
         })
 
-        if (dupeCheck) return res.status(400).json({ message: 'You can only review a spot once'});
+        if (dupeCheck) return res.status(500).json({ message: 'User already has a review for this spot'});
 
         const newReview = await Review.create({
             userId: user,
@@ -482,11 +592,11 @@ router.post('/:spotsId/reviews', requireAuth, async (req, res) => {
 
 //~CREATE A BOOKING FOR A SPOT
 //! req auth + spot may not belong to curr user
-router.post('/:spotId/bookings', requireAuth, async (req, res) => {
+router.post('/:spotId/bookings', requireAuth, validateBooking, async (req, res) => {
     const spot = await Spot.findByPk(req.params.spotId);
-    if (!spot) return res.status(404).json({ 'message': `Spot couldn't be found`});
+    if (!spot) return res.status(404).json({ message: `Spot couldn't be found`});
 
-    if (spot.ownerId === req.user.id) return res.status(403).json({ 'message': `Can't book your own spot`});
+    if (spot.ownerId === req.user.id) return res.status(403).json({ message: `Can't book your own spot`});
 
     try {
         const newBooking = await spot.createBooking({

@@ -3,9 +3,24 @@ const express = require('express');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
 const { Spot, Image, Review, User } = require('../../db/models');
 const { check } = require('express-validator');
+const { handleValidationErrors } = require('../../utils/validation');
 const formatDate = require('../api/utils/date-formatter');
 
 const router = express.Router();
+
+const validateReview = [
+  check('review')
+    .exists({ checkFalsy: true })
+    .notEmpty()
+    .isLength({ max: 250 })
+    .withMessage('Review text is required'),
+  check('stars')
+    .exists({ checkFalsy: true })
+    .notEmpty()
+    .isNumeric()
+    .withMessage('Stars must be an integer from 1 to 5'), //? custom check for 1-5
+  handleValidationErrors
+];
 
 //~GET REVIEWS FOR CURR USER
 //! require auth
@@ -84,7 +99,7 @@ router.get('/current', requireAuth, async (req, res) => {
 
 //~EDIT A REVIEW
 //! require auth and own
-router.put('/:reviewId', requireAuth, checkOwnership(Review, 'reviewId', 'userId'),
+router.put('/:reviewId', requireAuth, checkOwnership(Review, validateReview, 'reviewId', 'userId'),
 async (req, res) => {
     try {
         const review = await Review.findByPk(req.params.reviewId);
@@ -115,7 +130,7 @@ async (req, res) => {
     try {
         const review = await Review.findByPk(req.params.reviewId);
 
-        if (!review) return res.status(404).json({ message: `review coudn't be found` })
+        if (!review) return res.status(404).json({ message: `Review coudn't be found` })
 
         review.destroy();
 
