@@ -16,7 +16,7 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    options.tableName = 'Spots';
+    // options.tableName = 'Spots';
     await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Spots', 'idxPriceLatLng');
   }
 };

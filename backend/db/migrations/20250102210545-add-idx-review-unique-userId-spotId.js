@@ -16,7 +16,7 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    options.tableName = 'Reviews';
+    // options.tableName = 'Reviews';
     await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Reviews', 'idxUserIdSpotId');
   }
 };
