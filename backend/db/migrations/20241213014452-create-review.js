@@ -55,7 +55,7 @@ module.exports = {
     }, options);
 
     //? add indx
-    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Reviews', ['userId', 'spotId'], {
+    await queryInterface.addIndex('Reviews', ['userId', 'spotId'], {
       name: 'idxPriceLatLng',
       unique: false
     }, options);
@@ -63,7 +63,7 @@ module.exports = {
   },
   async down(queryInterface, Sequelize) {
     //? rmv idx
-    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Review', 'idxUserIdSpotId');
+    await queryInterface.removeIndex('Review', 'idxUserIdSpotId');
     await queryInterface.dropTable('Reviews', options);
   }
 };
