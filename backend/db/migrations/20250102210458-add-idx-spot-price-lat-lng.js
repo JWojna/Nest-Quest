@@ -9,7 +9,7 @@ if (process.env.NODE_ENV === 'production') {
 module.exports = {
   async up (queryInterface, Sequelize) {
     options.tableName = 'Spots';
-    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Spots', ['price', 'lat', 'lng'], {
+    await queryInterface.addIndex('Spots', ['price', 'lat', 'lng'], {
       name: 'idxPriceLatLng',
       unique: false
     }, options);
