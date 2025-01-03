@@ -83,7 +83,7 @@ const checkOwnership = (model, paramId, ownershipField = 'ownerId') => {
     const resource = await model.findByPk(id);
 
     if (!resource) {
-      return res.status(403).json({ message: `${model.name} not found` });
+      return res.status(403).json({ message: `${model.name} couldn't be found` });
     };
 
     if (resource[ownershipField] !== req.user.id) {
