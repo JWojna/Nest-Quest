@@ -2,6 +2,22 @@ const express = require('express');
 const { Spot, Image, Review, User, Booking } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
 const formatDate = require('../api/utils/date-formatter');
+const { check } = require('express-validator');
+const { handleValidationErrors } = require('../../utils/validation');
+
+const validateBooking = [
+  check('startDate')
+    .exists({ checkFalsy: true })
+    .notEmpty()
+    .isDate()
+    .withMessage('startDate cannot be in the past'), //? custom validators?
+  check('endDate')
+    .exists({ checkFalsy: true })
+    .notEmpty()
+    .isDate()
+    .withMessage('endDate cannot be on or before startDate'), //? custom validators?
+  handleValidationErrors
+];
 
 
 const router = express.Router();
@@ -73,7 +89,7 @@ router.get('/current', requireAuth, async (req, res) => {
 
 //~EDIT A BOOKING
 //! require auth and ownership
-router.put('/:bookingId', requireAuth, checkOwnership(Booking, 'bookingId', 'userId'),
+router.put('/:bookingId', requireAuth, checkOwnership(Booking, validateBooking, 'bookingId', 'userId'),
 async (req, res) => {
     const booking = await Booking.findByPk(req.params.bookingId);
     if (!booking) return res.status(404).json({ 'message': `Booking couildn't be found` });
