@@ -71,17 +71,8 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     }, options);
-
-    //? add index here
-    await queryInterface.addIndex('Spots', ['price', 'lat', 'lng'], {
-      name: 'idxUserIdSpotId',
-      unique: true
-    }, options);
-
   },
   async down(queryInterface, Sequelize) {
-    //? rmv index pre table drop
-    await queryInterface.removeIndex('Spots', 'idxPriceLatLng');
     await queryInterface.dropTable('Spots', options);
   }
 };
