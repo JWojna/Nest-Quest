@@ -73,7 +73,7 @@ module.exports = {
     }, options);
 
     //? add index here
-    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Spots', ['userId', 'spotId'], {
+    await queryInterface.addIndex('NEST_QUEST_SCHEMA.Spots', ['price', 'lat', 'lng'], {
       name: 'idxUserIdSpotId',
       unique: true
     }, options);
@@ -81,7 +81,7 @@ module.exports = {
   },
   async down(queryInterface, Sequelize) {
     //? rmv index pre table drop
-    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Spots', 'idxUserIdSpotId');
+    await queryInterface.removeIndex('NEST_QUEST_SCHEMA.Spots', 'idxPriceLatLng');
     await queryInterface.dropTable('Spots', options);
   }
 };
