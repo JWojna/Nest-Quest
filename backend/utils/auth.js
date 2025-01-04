@@ -87,7 +87,7 @@ const checkOwnership = (model, paramId, ownershipField = 'ownerId') => {
     };
 
     if (resource[ownershipField] !== req.user.id) {
-      return res.status(403).json({ error: `Forbidden: You do not own this ${model.name.toLowerCase()}` })
+      return res.status(403).json({ message: `Forbidden` })
     };
 
     next();

@@ -1,6 +1,8 @@
 //^ backend/utils/validation.js
+const { Booking } = require('../db/models')
 const { validationResult } = require('express-validator');
-const { check } = require('express-validator')
+const { check } = require('express-validator');
+const { Op } = require('sequelize');
 
 //~ middleware for formatting errors from express-validator middleware
 //~ (to customize, see express-validator's documentation)
@@ -23,30 +25,37 @@ const handleValidationErrors = (req, _res, next) => {
 };
 
 const validateSignup = [
-  check('firstName')
-    .exists({ checkFalsy: true })
-    .notEmpty()
-    .withMessage('Please provide your first name'),
-  check('lastName')
-    .exists({ checkFalsy: true })
-    .notEmpty()
-    .withMessage('Please provide your last name'),
   check('email')
     .exists({ checkFalsy: true })
     .isEmail()
-    .withMessage('Please provide a valid email.'),
+    .withMessage('Invalid email.'),
   check('username')
     .exists({ checkFalsy: true })
     .isLength({ min: 4 })
-    .withMessage('Please provide a username with at least 4 characters.'),
+    .withMessage('Username is required'),
   check('username')
     .not()
     .isEmail()
     .withMessage('Username cannot be an email.'),
+    check('firstName')
+    .exists({ checkFalsy: true })
+    .notEmpty()
+    .withMessage('First Name is required'),
+  check('lastName')
+    .exists({ checkFalsy: true })
+    .notEmpty()
+    .withMessage('Last Name is required'),
   check('password')
     .exists({ checkFalsy: true })
-    .isLength({ min: 6 })
-    .withMessage('Password must be 6 characters or more.'),
+    .notEmpty()
+    .withMessage('Password is required')
+    .custom((value, { req }) => {
+      const length = value.length;
+      if (length < 6) {
+        throw new Error('Password must be 6 charecters or more')
+      };
+      return true;
+    }),
   handleValidationErrors
 ];
 
@@ -54,10 +63,10 @@ const validateLogin = [
   check('credential')
     .exists({ checkFalsy: true })
     .notEmpty()
-    .withMessage('Please provide a valid email or username.'),
+    .withMessage('Email or username is required'),
   check('password')
     .exists({ checkFalsy: true })
-    .withMessage('Please provide a password.'),
+    .withMessage('Password is required'),
   handleValidationErrors
 ];
 
@@ -87,7 +96,7 @@ const validateSpot = [
       const num = Number(value);
       if (num < -90 || num > 90) {
           throw new Error('Latitude must be within -90 and 90')
-      }
+      };
       return true;
     }),
   check('lng')
@@ -132,12 +141,26 @@ const validateBooking = [
     .exists({ checkFalsy: true })
     .notEmpty()
     .isDate()
-    .withMessage('startDate cannot be in the past'), //? custom validators?
+    .withMessage('Start date must be a valild date')
+    .custom(( value, { req }) => {
+      const startDate = new Date(value);
+      const endDate = new Date(req.body.endDate);
+      const now = new Date();
+      if (startDate < now) throw new Error(`startDate cannot be in the past`);
+      if (startDate >= endDate) throw new Error(`startDate must be before endDate`);
+      return true;
+    }),
   check('endDate')
     .exists({ checkFalsy: true })
     .notEmpty()
     .isDate()
-    .withMessage('endDate cannot be on or before startDate'), //? custom validators?
+    .withMessage('End date must be a valid date')
+    .custom(( value, { req }) => {
+      const endDate = new Date(value);
+      const startDate = new Date(req.body.startDate);
+      if (endDate <= startDate) throw new Error(`endDate cannot be on or before startDate`);
+      return true;
+    }),
   handleValidationErrors
 ];
 
@@ -145,15 +168,63 @@ const validateReview = [
   check('review')
     .exists({ checkFalsy: true })
     .notEmpty()
-    .isLength({ max: 250 })
+    .isLength({ min:2, max: 250 })
     .withMessage('Review text is required'),
   check('stars')
     .exists({ checkFalsy: true })
     .notEmpty()
     .isNumeric()
-    .withMessage('Stars must be an integer from 1 to 5'), //? custom check for 1-5
+    .withMessage('Stars must be an number')
+    .custom(( value, { req }) => {
+      const num = Number(value);
+      if (num < 1 || num > 5) {
+        throw new Error('Stars must be an integer from 1 to 5')
+      };
+      return true;
+    }),
   handleValidationErrors
 ];
+
+//^ booking conflict validation
+const checkBookingConflict = async (req, res, next) => {
+  const { startDate, endDate } = req.body;
+  const spotId = req.params.spotId;
+
+  try {
+    //^ get all bookings for same spot
+    const existingBookings = await Booking.findAll({
+      where: {
+        spotId: spotId,
+        [Op.or]: [
+          //^ check for overlaps
+          { startDate: { [Op.between]: [startDate, endDate] } },
+          { endDate: { [Op.between]: [startDate, endDate] } },
+          { [Op.and]: [
+            { startDate: { [Op.lte]: startDate } },
+            { endDate: { [Op.gte]: endDate } },
+            ],
+          },
+          { endDate: { [Op.lt]: startDate } },
+          { startDate: { [Op.gt]: endDate } },
+        ],
+      },
+    });
+
+    //^conflict check
+    if (existingBookings.length > 0) {
+      return res.status(400).json({
+         message: 'Sorry, this spot is already booked for the specified dates',
+         errors: {
+          startDate: 'Start date conflicts with an existing booking',
+          endDate: 'End date conflicts with an existing booking'
+         }
+      })
+    }
+    next();
+  } catch (error) {
+    console.error(error); res.status(500).json({ message: 'An error occurred while checking for booking conflicts.' });
+  };
+};
 
 module.exports = {
   validateSignup,
@@ -161,5 +232,6 @@ module.exports = {
   validateSpot,
   validateBooking,
   validateReview,
-  // handleValidationErrors
+  checkBookingConflict,
+  handleValidationErrors
 };

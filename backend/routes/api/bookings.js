@@ -1,7 +1,7 @@
 const express = require('express');
 const { Spot, Image, Booking } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
-const formatDate = require('../api/utils/date-formatter');
+const { formatDate, formatDateTime } = require('../api/utils/date-formatter');
 const { validateBooking } = require('../../utils/validation');
 
 const router = express.Router();
@@ -32,8 +32,8 @@ router.get('/current', requireAuth, async (req, res) => {
 
       return {
         ...bookingData,
-        createdAt: formatDate(createdAt),
-        updatedAt: formatDate(updatedAt),
+        createdAt: formatDateTime(createdAt),
+        updatedAt: formatDateTime(updatedAt),
         Spot: {
           id: Spot.id,
           ownerId: Spot.ownerId,
@@ -48,10 +48,10 @@ router.get('/current', requireAuth, async (req, res) => {
           previewImage: Spot.Images.length ? Spot.Images[0].url : null
         },
         userId: booking.userId,
-        startDate: formatDate(startDate).split(' ')[0],
-        endDate: formatDate(endDate).split(' ')[0],
-        createdAt: formatDate(createdAt),
-        updatedAt: formatDate(updatedAt),
+        startDate: formatDate(startDate),
+        endDate: formatDate(endDate),
+        createdAt: formatDateTime(createdAt),
+        updatedAt: formatDateTime(updatedAt),
       };
     });
 
@@ -84,10 +84,10 @@ async (req, res) => {
     booking.save({ validate: true });
 
     const responseData = booking.get();
-    responseData.startDate = formatDate(responseData.startDate).split(' ')[0];
-    responseData.endDate = formatDate(responseData.endDate).split(' ')[0];
-    responseData.createdAt = formatDate(responseData.createdAt);
-    responseData.updatedAt = formatDate(responseData.updatedAt);
+    responseData.startDate = formatDate(responseData.startDate);
+    responseData.endDate = formatDate(responseData.endDate);
+    responseData.createdAt = formatDateTime(responseData.createdAt);
+    responseData.updatedAt = formatDateTime(responseData.updatedAt);
 
     const resRemodel = {
         id: responseData.id,

@@ -16,7 +16,7 @@ router.delete('/:imageId', requireAuth, async (req, res) => {
 
         //^ check ownership of review
         const spot = await Spot.findByPk(image.imageableId)
-        if (req.user.id !== spot.ownerId) return res.status(403).json({ error: `Forbidden: You do not own this spot` });
+        if (req.user.id !== spot.ownerId) return res.status(403).json({ error: `Forbidden` });
 
         image.destroy();
 

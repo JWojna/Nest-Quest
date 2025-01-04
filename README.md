@@ -91,7 +91,7 @@ information.
 * Require Authentication: false
 * Request
   * Method: POST
-  * Route path: api/session
+  * Route path: api/users
   * Headers:
     * Content-Type: application/json
   * Body:

@@ -3,8 +3,8 @@ const express = require('express');
 const { Op, fn, col } = require('sequelize');
 const { Spot, Image, Review, User, Booking } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
-const formatDate = require('../api/utils/date-formatter');
-const { validateSpot, validateBooking, validateReview } = require('../../utils/validation');
+const { formatDate, formatDateTime } = require('../api/utils/date-formatter');
+const { validateSpot, validateBooking, validateReview, checkBookingConflict } = require('../../utils/validation');
 
 const router = express.Router();
 
@@ -85,8 +85,8 @@ router.get('/', async (req, res) => {
 
             return {
                 ...spotObj,
-                createdAt: formatDate(spot.createdAt),
-                updatedAt: formatDate(spot.updatedAt),
+                createdAt: formatDateTime(spot.createdAt),
+                updatedAt: formatDateTime(spot.updatedAt),
                 avgRating: avgRateMap[spot.id] || 1,
                 previewImage: spot.Images[0]?.url || null
             };
@@ -133,8 +133,8 @@ router.get('/current', requireAuth, async (req, res) => {
 
         return {
             ...spotObj,
-            createdAt: formatDate(spot.createdAt),
-            updatedAt: formatDate(spot.updatedAt),
+            createdAt: formatDateTime(spot.createdAt),
+            updatedAt: formatDateTime(spot.updatedAt),
             avgRating: avgRateMap[spot.id] || 1,
             previewImage: spot.Images[0]?.url || null
         };
@@ -197,8 +197,8 @@ router.get('/:spotId', async (req, res) => {
 
         const responseData = {
             ...spotData,
-            createdAt: formatDate(spot.createdAt),
-            updatedAt: formatDate(spot.updatedAt),
+            createdAt: formatDateTime(spot.createdAt),
+            updatedAt: formatDateTime(spot.updatedAt),
             numRatings: reviewCount || 0,
             avgStarRating: reviewCount ? (sumStars / reviewCount).toFixed(2) : 1,
             spotImages: spotImages.length ? spotImages.map( image => ({
@@ -223,6 +223,8 @@ router.get('/:spotId', async (req, res) => {
 //~ GET REVIEWS BY SPOTID
 router.get('/:spotId/reviews', async (req, res) => {
     try {
+        const spotCheck = await Spot.findByPk(req.params.spotId)
+        if (!spotCheck) res.status(404).json({ message: `Spot couldn't be found` })
         const reviews = await Review.findAll({
             where: {
                 spotId: req.params.spotId
@@ -253,8 +255,8 @@ router.get('/:spotId/reviews', async (req, res) => {
 
             return {
                 ...reviewObj,
-                createdAt: formatDate(review.createdAt),
-                updatedAt: formatDate(review.updatedAt),
+                createdAt: formatDateTime(review.createdAt),
+                updatedAt: formatDateTime(review.updatedAt),
                 User: reviewObj.User ? {
                     id: reviewObj.User.id,
                     firstName: reviewObj.User.firstName,
@@ -299,10 +301,10 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
                     id: booking.id,
                     spotId: booking.spotId,
                     userId: booking.userId,
-                    startDate: formatDate(booking.startDate).split(' ')[0],
-                    endDate: formatDate(booking.endDate).split(' ')[0],
-                    createdAt: formatDate(spot.createdAt),
-                    updatedAt: formatDate(spot.updatedAt)
+                    startDate: formatDate(booking.startDate),
+                    endDate: formatDate(booking.endDate),
+                    createdAt: formatDateTime(spot.createdAt),
+                    updatedAt: formatDateTime(spot.updatedAt)
                 };
             });
 
@@ -311,8 +313,8 @@ router.get('/:spotId/bookings', requireAuth, async (req, res) => {
             const unOwnedSpot = bookings.map( booking => {
                 return {
                     spotId: booking.spotId,
-                    startDate: formatDate(booking.startDate).split(' ')[0],
-                    endDate: formatDate(booking.endDate).split(' ')[0]
+                    startDate: formatDate(booking.startDate),
+                    endDate: formatDate(booking.endDate)
                 };
             });
 
@@ -349,8 +351,8 @@ router.post('/', requireAuth, validateSpot, async (req, res) => {
 
         const spotObj = spot.get();
 
-        spotObj.createdAt = formatDate(spotObj.createdAt);
-        spotObj.updatedAt = formatDate(spotObj.updatedAt);
+        spotObj.createdAt = formatDateTime(spotObj.createdAt);
+        spotObj.updatedAt = formatDateTime(spotObj.updatedAt);
 
         res.status(201).json(spotObj);
     } catch (error) {
@@ -361,7 +363,7 @@ router.post('/', requireAuth, validateSpot, async (req, res) => {
 
 //~EDIT A SPOT
 //! requires auth and ownership
-router.put('/:spotId', requireAuth, checkOwnership(Spot), validateSpot, async (req, res) => {
+router.put('/:spotId', requireAuth, checkOwnership(Spot, 'spotId'), validateSpot, async (req, res) => {
     try {
         const spot = await Spot.findByPk(req.params.spotId);
         spot.set({
@@ -371,8 +373,8 @@ router.put('/:spotId', requireAuth, checkOwnership(Spot), validateSpot, async (r
         spot.save({ validate: true });
 
         const spotObj = spot.get();
-        spotObj.createdAt = formatDate(spotObj.createdAt);
-        spotObj.updatedAt = formatDate(spotObj.updatedAt);
+        spotObj.createdAt = formatDateTime(spotObj.createdAt);
+        spotObj.updatedAt = formatDateTime(spotObj.updatedAt);
 
         res.status(200).json(spotObj);
     } catch (error) {
@@ -383,7 +385,7 @@ router.put('/:spotId', requireAuth, checkOwnership(Spot), validateSpot, async (r
 
 //~DELETE A SPOT
 //! requires auth and ownership
-router.delete('/:spotId', requireAuth, checkOwnership(Spot), async (req, res) => {
+router.delete('/:spotId', requireAuth, checkOwnership(Spot, 'spotId'), async (req, res) => {
     try {
         const spot = await Spot.findByPk(req.params.spotId);
         if (!spot) return res.status(404).json({ message: `Spot coudn't be found` });
@@ -452,8 +454,8 @@ router.post('/:spotsId/reviews', requireAuth, validateReview, async (req, res) =
         }, { validate: true });
 
         newRevObj = newReview.get();
-        newRevObj.createdAt = formatDate(newRevObj.createdAt);
-        newRevObj.updatedAt = formatDate(newRevObj.updatedAt);
+        newRevObj.createdAt = formatDateTime(newRevObj.createdAt);
+        newRevObj.updatedAt = formatDateTime(newRevObj.updatedAt);
 
         res.status(201).json(newRevObj);
     } catch (error) {
@@ -464,7 +466,7 @@ router.post('/:spotsId/reviews', requireAuth, validateReview, async (req, res) =
 
 //~CREATE A BOOKING FOR A SPOT
 //! req auth + spot may not belong to curr user
-router.post('/:spotId/bookings', requireAuth, validateBooking, async (req, res) => {
+router.post('/:spotId/bookings', requireAuth, validateBooking, checkBookingConflict,  async (req, res) => {
     try {
         const spot = await Spot.findByPk(req.params.spotId);
         if (!spot) return res.status(404).json({ message: `Spot couldn't be found`});
@@ -480,8 +482,8 @@ router.post('/:spotId/bookings', requireAuth, validateBooking, async (req, res) 
         const responseData = newBooking.get();
         responseData.startDate = formatDate(responseData.startDate).split(' ')[0];
         responseData.endDate = formatDate(responseData.endDate).split(' ')[0];
-        responseData.createdAt = formatDate(responseData.createdAt);
-        responseData.updatedAt = formatDate(responseData.updatedAt);
+        responseData.createdAt = formatDateTime(responseData.createdAt);
+        responseData.updatedAt = formatDateTime(responseData.updatedAt);
 
         res.json(responseData)
     } catch (error) {

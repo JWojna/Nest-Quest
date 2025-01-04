@@ -3,7 +3,7 @@ const express = require('express');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
 const { Spot, Image, Review, User } = require('../../db/models');
 const { validateReview } = require('../../utils/validation');
-const formatDate = require('../api/utils/date-formatter');
+const { formatDateTime } = require('../api/utils/date-formatter');
 
 const router = express.Router();
 
@@ -47,8 +47,8 @@ router.get('/current', requireAuth, async (req, res) => {
 
       return {
         ...reviewData,
-        createdAt: formatDate(createdAt),
-        updatedAt: formatDate(updatedAt),
+        createdAt: formatDateTime(createdAt),
+        updatedAt: formatDateTime(updatedAt),
         User: {
           id: User.id,
           firstName: User.firstName,
@@ -93,8 +93,8 @@ async (req, res) => {
     review.save({ validate: true });
 
     const reviewObj = review.get();
-    reviewObj.createdAt = formatDate(reviewObj.createdAt);
-    reviewObj.updatedAt = formatDate(reviewObj.updatedAt);
+    reviewObj.createdAt = formatDateTime(reviewObj.createdAt);
+    reviewObj.updatedAt = formatDateTime(reviewObj.updatedAt);
 
     res.json(reviewObj);
   } catch (error) {
