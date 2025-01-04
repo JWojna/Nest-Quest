@@ -203,9 +203,7 @@ const checkBookingConflict = async (req, res, next) => {
             { startDate: { [Op.lte]: startDate } },
             { endDate: { [Op.gte]: endDate } },
             ],
-          },
-          // { endDate: { [Op.lt]: startDate } },
-          // { startDate: { [Op.gt]: endDate } },
+          },,
         ],
       },
     });
