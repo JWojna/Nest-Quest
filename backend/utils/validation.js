@@ -187,9 +187,9 @@ const validateReview = [
 
 //^ booking conflict validation
 const checkBookingConflict = async (req, res, next) => {
-  const { startDate, endDate } = req.body;
+  const  startDate = new Date(req.body.startDate);
+  const  endDate = new Date(req.body.endDate);
   const spotId = req.params.spotId;
-
   try {
     //^ get all bookings for same spot
     const existingBookings = await Booking.findAll({
@@ -204,8 +204,8 @@ const checkBookingConflict = async (req, res, next) => {
             { endDate: { [Op.gte]: endDate } },
             ],
           },
-          { endDate: { [Op.lt]: startDate } },
-          { startDate: { [Op.gt]: endDate } },
+          // { endDate: { [Op.lt]: startDate } },
+          // { startDate: { [Op.gt]: endDate } },
         ],
       },
     });

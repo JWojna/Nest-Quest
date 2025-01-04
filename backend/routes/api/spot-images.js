@@ -8,11 +8,9 @@ const router = express.Router();
 //!requires auth and ownership of spot
 router.delete('/:imageId', requireAuth, async (req, res) => {
     try {
-        const image = await Image.findByPk(req.params.imageId,
-            { where: { imageableType: 'spot'} },
-        );
+        const image = await Image.findByPk(req.params.imageId);
 
-        if (!image) return res.status(404).json({ message: 'Image not found' });
+        if (!image) return res.status(404).json({ message: `Spot Image couldn't be found` });
 
         //^ check ownership of review
         const spot = await Spot.findByPk(image.imageableId)

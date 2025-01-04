@@ -480,8 +480,8 @@ router.post('/:spotId/bookings', requireAuth, validateBooking, checkBookingConfl
         }, { validate: true });
 
         const responseData = newBooking.get();
-        responseData.startDate = formatDate(responseData.startDate).split(' ')[0];
-        responseData.endDate = formatDate(responseData.endDate).split(' ')[0];
+        responseData.startDate = formatDate(responseData.startDate);
+        responseData.endDate = formatDate(responseData.endDate);
         responseData.createdAt = formatDateTime(responseData.createdAt);
         responseData.updatedAt = formatDateTime(responseData.updatedAt);
 

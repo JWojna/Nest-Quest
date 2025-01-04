@@ -68,14 +68,23 @@ router.put('/:bookingId', requireAuth, checkOwnership(Booking, 'bookingId', 'use
 async (req, res) => {
   try {
     //^ get curr date for checks
-    const currDate = new Date();
+    const currDate = formatDate(new Date());
     const booking = await Booking.findByPk(req.params.bookingId);
     if (!booking) return res.status(404).json({ message: `Booking couildn't be found` });
 
+    //^ Convert request body dates to Date objects
+    const reqStart = formatDate(req.body.startDate);
+    const reqEnd = formatDate(req.body.endDate)
+
     //^ cant edit a booking in progress
-    if (req.body.startDate <= currDate && req.body.endDate >= currDate) {
-      return res.status(403).json({ message: `Bookings that have been started can't be edited`});
+    if (reqStart <= currDate && reqEnd >= currDate) {
+      return res.status(403).json({ message: `Active bookings can't be modified`});
     };
+
+    //^ cant edit past booking
+    if (reqEnd <= currDate) {
+      return res.status(403).json({ message: `Past bookings can't be modified`});
+    }
 
     booking.set({
         ...req.body
