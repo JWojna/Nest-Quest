@@ -108,8 +108,18 @@ async (req, res) => {
 router.delete('/:reviewId', requireAuth, checkOwnership(Review, 'reviewId', 'userId'),
 async (req, res) => {
   try {
-    const review = await Review.findByPk(req.params.reviewId);
+    const review = await Review.findByPk(req.params.reviewId, {
+      include: {
+        model: Image,
+        as: 'Images'
+      }
+    });
+
     if (!review) return res.status(404).json({ message: `Review coudn't be found` });
+
+    for (const image of review.Images) {
+      image.destroy();
+    };
 
     review.destroy();
 

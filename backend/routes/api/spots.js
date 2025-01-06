@@ -390,6 +390,12 @@ router.delete('/:spotId', requireAuth, checkOwnership(Spot, 'spotId'), async (re
         const spot = await Spot.findByPk(req.params.spotId);
         if (!spot) return res.status(404).json({ message: `Spot coudn't be found` });
 
+        //^ finad all associated spots images, review images invluded to cascade delete
+        const spotImages = await Image.findAll({ where: { imageableId: spot.id } });
+        for (const image of spotImages) {
+            await image.destroy()
+        }
+
         spot.destroy();
 
         res.json({ message: 'Successfully deleted' });
