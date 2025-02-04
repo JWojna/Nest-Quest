@@ -1,155 +1,142 @@
 const express = require('express');
-const { Spot, Image, Review, User, Booking } = require('../../db/models');
+const { Spot, Image, Booking } = require('../../db/models');
 const { requireAuth, checkOwnership } = require('../../utils/auth');
-const formatDate = require('../api/utils/date-formatter');
-const { check } = require('express-validator');
-const { handleValidationErrors } = require('../../utils/validation');
-
-const validateBooking = [
-  check('startDate')
-    .exists({ checkFalsy: true })
-    .notEmpty()
-    .isDate()
-    .withMessage('startDate cannot be in the past'), //? custom validators?
-  check('endDate')
-    .exists({ checkFalsy: true })
-    .notEmpty()
-    .isDate()
-    .withMessage('endDate cannot be on or before startDate'), //? custom validators?
-  handleValidationErrors
-];
-
+const { formatDate, formatDateTime } = require('../api/utils/date-formatter');
+const { validateBooking } = require('../../utils/validation');
 
 const router = express.Router();
-
-//^ get curr date for checks
-const currDate = new Date();
 
 //~GET BOOKINGS BY CURR USER
 //! req auth
 router.get('/current', requireAuth, async (req, res) => {
-    //^ date extractor
-    const extractDate = (formattedDate) => { return formattedDate.split(' ')[0]; };
+  try {
+    const bookings = await Booking.findAll({
+      where: { userId: req.user.id },
+      include: [{
+          model: Spot,
+          attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
+          include: [{
+            model: Image,
+            as: 'Images',
+            attributes: ['url'],
+            limit: 1,
+          }],
+        },
+      ],
+    });
 
-    try {
-      const bookings = await Booking.findAll({
-        where: { userId: req.user.id },
-        include: [{
-            model: Spot,
-            attributes: ['id', 'ownerId', 'address', 'city', 'state', 'country', 'lat', 'lng', 'name', 'price'],
-            include: [{
-              model: Image,
-              as: 'Images',
-              attributes: ['url'],
-              limit: 1,
-            }],
-          },
-        ],
-      });
+    if (!bookings) return res.status(404).json({ error: `No bookings found`});
 
-      if (!bookings) {
-        return res.status(404).json({ error: `No bookings found`});
+    const responseData = bookings.map( booking => {
+      const { Spot, Images, startDate, endDate, createdAt, updatedAt, userId,  ...bookingData } = booking.get();
+
+      return {
+        ...bookingData,
+        createdAt: formatDateTime(createdAt),
+        updatedAt: formatDateTime(updatedAt),
+        Spot: {
+          id: Spot.id,
+          ownerId: Spot.ownerId,
+          address: Spot.address,
+          city: Spot.city,
+          state: Spot.state,
+          country: Spot.country,
+          lat: Spot.lat,
+          lng: Spot.lng,
+          name: Spot.name,
+          price: Spot.price,
+          previewImage: Spot.Images.length ? Spot.Images[0].url : null
+        },
+        userId: booking.userId,
+        startDate: formatDate(startDate),
+        endDate: formatDate(endDate),
+        createdAt: formatDateTime(createdAt),
+        updatedAt: formatDateTime(updatedAt),
       };
+    });
 
-      const responseData = bookings.map( booking => {
-        const { Spot, Images, startDate, endDate, createdAt, updatedAt, userId,  ...bookingData } = booking.get();
-
-        return {
-          ...bookingData,
-          createdAt: formatDate(createdAt),
-          updatedAt: formatDate(updatedAt),
-          Spot: {
-            id: Spot.id,
-            ownerId: Spot.ownerId,
-            address: Spot.address,
-            city: Spot.city,
-            state: Spot.state,
-            country: Spot.country,
-            lat: Spot.lat,
-            lng: Spot.lng,
-            name: Spot.name,
-            price: Spot.price,
-            previewImage: Spot.Images.length ? Spot.Images[0].url : null
-          },
-          userId: booking.userId,
-          startDate: extractDate(formatDate(startDate)),
-          endDate: extractDate(formatDate(endDate)),
-          createdAt: formatDate(createdAt),
-          updatedAt: formatDate(updatedAt),
-        };
-
-      });
-
-      res.json({'Bookings': responseData })
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-})
+    res.json({'Bookings': responseData });
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  };
+});
 
 //~EDIT A BOOKING
 //! require auth and ownership
-router.put('/:bookingId', requireAuth, checkOwnership(Booking, validateBooking, 'bookingId', 'userId'),
+router.put('/:bookingId', requireAuth, checkOwnership(Booking, 'bookingId', 'userId'),   // validateBooking,
 async (req, res) => {
-    const booking = await Booking.findByPk(req.params.bookingId);
-    if (!booking) return res.status(404).json({ 'message': `Booking couildn't be found` });
+  res.status(503).json({ message: 'This route is currently under construction.' });
+  // try {
+  //   //^ get curr date for checks
+  //   const currDate = formatDate(new Date());
+  //   const booking = await Booking.findByPk(req.params.bookingId);
+  //   if (!booking) return res.status(404).json({ message: `Booking couildn't be found` });
 
-    try {
-        booking.set({
-            ...req.body
-        });
+  //   //^ Convert request body dates to Date objects
+  //   const reqStart = formatDate(req.body.startDate);
+  //   const reqEnd = formatDate(req.body.endDate)
 
-        booking.save({ validate: true });
+  //   //^ cant edit a booking in progress
+  //   if (reqStart <= currDate && reqEnd >= currDate) {
+  //     return res.status(403).json({ message: `Active bookings can't be modified`});
+  //   };
 
-        const responseData = booking.get()
-        responseData.startDate = formatDate(responseData.startDate).split(' ')[0];
-        responseData.endDate = formatDate(responseData.endDate).split(' ')[0];
-        responseData.createdAt = formatDate(responseData.createdAt);
-        responseData.updatedAt = formatDate(responseData.updatedAt);
+  //   //^ cant edit past booking
+  //   if (reqEnd <= currDate) {
+  //     return res.status(403).json({ message: `Past bookings can't be modified`});
+  //   }
 
-        const resRemodel = {
-            id: responseData.id,
-            spotId: responseData.spotId,
-            userId: responseData.userId,
-            startDate: responseData.startDate,
-            endDate: responseData.endDate,
-            createdAt: responseData.createdAt,
-            updatedAt: responseData.updatedAt
-          }
+  //   booking.set({
+  //       ...req.body
+  //   });
 
-        res.json(resRemodel)
-    } catch (error) {
-        console.error('Error editing booking:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+  //   booking.save({ validate: true });
 
+  //   const responseData = booking.get();
+  //   responseData.startDate = formatDate(responseData.startDate);
+  //   responseData.endDate = formatDate(responseData.endDate);
+  //   responseData.createdAt = formatDateTime(responseData.createdAt);
+  //   responseData.updatedAt = formatDateTime(responseData.updatedAt);
 
-})
+  //   const resRemodel = {
+  //       id: responseData.id,
+  //       spotId: responseData.spotId,
+  //       userId: responseData.userId,
+  //       startDate: responseData.startDate,
+  //       endDate: responseData.endDate,
+  //       createdAt: responseData.createdAt,
+  //       updatedAt: responseData.updatedAt
+  //   };
 
+  //   res.json(resRemodel);
+  // } catch (error) {
+  //     console.error('Error editing booking:', error);
+  //     return res.status(500).json({ error: 'Internal Server Error' });
+  // };
+});
 
 //~DELETE A BOOKING
 //! req auth and ownership of booking
 router.delete('/:bookingId', requireAuth, checkOwnership(Booking, 'bookingId', 'userId'),
 async (req, res) => {
+  try {
+    //^ get curr date for checks
+    const currDate = new Date();
     const booking = await Booking.findByPk(req.params.bookingId);
-
-    if (!booking) return res.status(404).json({ 'message': `Booking couildn't be found` });
+    if (!booking) return res.status(404).json({ message: `Booking couildn't be found` });
 
     if (booking.startDate <= currDate && booking.endDate >= currDate) {
-        return res.status(403).json({ 'message': `Bookings that have been started can't be deleted`});
+        return res.status(403).json({ message: `Bookings that have been started can't be deleted`});
     };
 
+    booking.destroy();
 
-    try {
-        booking.destroy();
-
-        res.json({ 'message': 'Successfully deleted'})
-    } catch (error) {
-        console.error('Error deleteing booking:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
-
-})
-
+    res.json({ message: 'Successfully deleted'});
+  } catch (error) {
+      console.error('Error deleteing booking:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+  };
+});
 
 module.exports = router;

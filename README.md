@@ -4,6 +4,15 @@
 
 [db-schema]: ./images/Screenshot%202024-12-12%20185148.png
 
+## !!!!!!!   KNOWN ISSUES !!!!!!!!!
+- SEQUELIZE CURR_TIMESTAMP FOR UPDATED AND CREATED CREATING BAD TIME STAMPOS BETWEEN MIDNIGHT AND 1AM DISSALLOWING CREATE AND UPDATE OPERATIONS
+
+! EDIT BOOKING ROUTE IS CURRENTLY LIVE, HOWEVER I HAVE INSTALLED AN UNDER CONSTRUCTION 503 RESPONSE
+- EDIT BOOKINGS ROUTE CURRENTLY ONLY CHECKS IF BOOKING IS IN PAST OR IN PROGRESS/ CURRENTLY ALLOWS CONFLICTS WITH OTHER BOOKINGS
+
+## Render live service link
+https://nest-quest-0qiu.onrender.com/api
+
 ## API Documentation
 
 ## USER AUTHENTICATION/AUTHORIZATION
@@ -91,7 +100,7 @@ information.
 * Require Authentication: false
 * Request
   * Method: POST
-  * Route path: api/session
+  * Route path: api/users
   * Headers:
     * Content-Type: application/json
   * Body:
