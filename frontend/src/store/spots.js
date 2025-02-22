@@ -8,15 +8,15 @@ const setSpots = (spots) => ({
     payload: spots
 });
 
-const addSpot = (spot) => ({
-    type: ADD_SPOTS,
-    payload: spot
-});
+// const addSpot = (spot) => ({
+//     type: ADD_SPOTS,
+//     payload: spot
+// });
 
-const removeSpot = (spotId) => ({
-    type: REMOVE_SPOT,
-    payload: spotId
-});
+// const removeSpot = (spotId) => ({
+//     type: REMOVE_SPOT,
+//     payload: spotId
+// });
 
 // thunk actions to fetch spots
 export const fetchSpots = () => async (dispatch) => {
