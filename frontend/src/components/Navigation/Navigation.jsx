@@ -7,16 +7,19 @@ function Navigation({ isLoaded }) {
   const sessionUser = useSelector(state => state.session.user);
 
   return (
-    <ul>
-      <li>
-        <NavLink to="/">Home</NavLink>
-      </li>
+    <div id='navbar'>
+      <>
+        <NavLink to="/">
+        <img src="../../images/nestQuestBrandIcon.jpg" alt="Brand" className='brand-icon' />
+        Nest Quest
+        </NavLink>
+      </>
       {isLoaded && (
-        <li>
+        <>
           <ProfileButton user={sessionUser} />
-        </li>
+        </>
       )}
-    </ul>
+    </div>
   );
 }
 

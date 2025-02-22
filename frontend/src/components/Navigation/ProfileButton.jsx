@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
-import { FaUserCircle } from "react-icons/fa";
+import { FaHamburger } from "react-icons/fa";
 import * as sessionActions from "../../store/session";
 import OpenModalMenuItem from "./OpenModalMenuItem";
 import LoginFormModal from "../LoginFormModal";
@@ -43,7 +43,7 @@ function ProfileButton({ user }) {
   return (
     <>
       <button onClick={toggleMenu}>
-        <FaUserCircle />
+        <FaHamburger />
       </button>
       {showMenu && (
         <ul className={ulClassName} ref={ulRef}>
