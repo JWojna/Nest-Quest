@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import * as sessionActions from "../../store/session";
-import { Navigate } from "react-router-dom";
+import { useState } from 'react';
+import * as sessionActions from '../../store/session';
+import { useDispatch, useSelector } from 'react-redux';
+import { Navigate } from 'react-router-dom';
 import './LoginForm.css';
 
 function LoginFormPage() {
-  const distpatch = useDispatch();
+  const dispatch = useDispatch();
   const sessionUser = useSelector((state) => state.session.user);
+  console.log("Session User:", sessionUser);  
   const [credential, setCredential] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
@@ -16,7 +17,7 @@ function LoginFormPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrors({});
-    return distpatch(sessionActions.login({ credential, password })).catch(
+    return dispatch(sessionActions.login({ credential, password })).catch(
       async (res) => {
         const data = await res.json();
         if (data?.errors) setErrors(data.errors);
